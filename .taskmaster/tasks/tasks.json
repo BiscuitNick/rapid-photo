@@ -153,9 +153,10 @@
               2
             ],
             "details": "Create SecurityConfig establishing oauth2ResourceServer jwt setup, supply Amplify decoder bean, add filter wiring for user context propagation, and ensure permissive actuator endpoints paired with secured API routes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Add WebTestClient security tests and MockWebServer-signed tokens to confirm valid/invalid JWT handling.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T21:30:00.000Z"
           },
           {
             "id": 6,
