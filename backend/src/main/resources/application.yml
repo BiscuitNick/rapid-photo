@@ -48,7 +48,8 @@ aws:
   endpoint: ${AWS_ENDPOINT:} # For LocalStack in local dev
   s3:
     bucket-name: ${S3_BUCKET_NAME:rapid-photo-uploads}
-    presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:15} # Minutes
+    presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:15} # Minutes (for uploads)
+    download-url-expiration: ${S3_DOWNLOAD_URL_EXPIRATION:15} # Minutes (for downloads)
   sqs:
     photo-upload-queue: ${SQS_PHOTO_UPLOAD_QUEUE:photo-upload-events}
 
