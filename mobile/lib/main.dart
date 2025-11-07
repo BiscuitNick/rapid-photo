@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rapid_photo_mobile/features/gallery/widgets/gallery_screen.dart';
 import 'package:rapid_photo_mobile/features/upload/widgets/upload_screen.dart';
 import 'package:rapid_photo_mobile/shared/auth/amplify_auth_service.dart';
 
@@ -74,6 +75,12 @@ class HomePage extends ConsumerWidget {
               icon: const Icon(Icons.cloud_upload),
               label: const Text('Go to Upload'),
             ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => _navigateToGallery(context, ref),
+              icon: const Icon(Icons.photo_library),
+              label: const Text('View Gallery'),
+            ),
           ],
         ),
       ),
@@ -94,6 +101,24 @@ class HomePage extends ConsumerWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const UploadScreen(),
+      ),
+    );
+  }
+
+  Future<void> _navigateToGallery(BuildContext context, WidgetRef ref) async {
+    // Initialize Amplify before navigating
+    final authService = ref.read(amplifyAuthServiceProvider);
+    try {
+      await authService.configure();
+    } catch (e) {
+      // Amplify might already be configured
+    }
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const GalleryScreen(),
       ),
     );
   }
