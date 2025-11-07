@@ -91,7 +91,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -168,9 +168,10 @@
               4
             ],
             "details": "Implement ObservabilityConfig exporting ObservationHandler beans, instrument domain services with @Observed, and ensure tracing hooks integrate with CloudWatch exporters defined in config.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create unit/integration tests to verify ObservationHandler beans load and @Observed emits spans via Micrometer test registry.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T22:00:00.000Z"
           }
         ],
         "complexity": 8,
