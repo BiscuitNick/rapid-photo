@@ -132,11 +132,11 @@ RapidPhotoUpload is a production-grade, high-performance photo upload and manage
 |-------|------------|-------------|---------------|
 | **Mobile** | Flutter | **3.27+** | Latest stable, improved performance, full Material 3 |
 | **State Mgmt** | Riverpod | **3.0.1** (flutter_riverpod) | Type-safe AsyncNotifier, improved code generation |
-| **Web** | React | **19.2.0** + TypeScript 5.x | Server Components, improved concurrency features |
+| **Web** | React | **19.0.0** + TypeScript 5.7.2 | Server Components, improved concurrency features |
 | **Web UI** | Tailwind CSS + shadcn/ui | **3.4.17 + Latest** | Rapid development, consistent design system |
-| **Backend** | Spring Boot + WebFlux | **3.5.3** | Latest stable, improved observability & performance |
-| **Java** | OpenJDK | **17 (min), 21 recommended** | Spring Boot 3.5.3 requirement, LTS support |
-| **Build Tool** | Gradle | **8.1.1+** or Maven **3.8.5+** | Required for Spring Boot 3.5.3 |
+| **Backend** | Spring Boot + WebFlux | **3.3.5** | Current stable, production-ready observability & performance |
+| **Java** | OpenJDK | **17 (min), 21 recommended** | Spring Boot 3.3.5 requirement, LTS support |
+| **Build Tool** | Gradle | **8.1.1+** or Maven **3.8.5+** | Required for Spring Boot 3.3.5 |
 | **Database** | PostgreSQL | **17.6** | Latest stable, improved query planner, better JSON |
 | **DB Driver** | R2DBC PostgreSQL | **Latest (Spring managed)** | Reactive, non-blocking database access |
 | **Storage** | AWS S3 | **Current API** | Scalable, durable (99.999999999%) |
@@ -471,7 +471,7 @@ CREATE INDEX idx_upload_jobs_status ON upload_jobs(status);
 
 ## 6. Updated Dependencies & Configuration
 
-### 6.1 Backend Dependencies (Spring Boot 3.5.3)
+### 6.1 Backend Dependencies (Spring Boot 3.3.5)
 
 **Maven (pom.xml)**
 ```xml
@@ -485,7 +485,7 @@ CREATE INDEX idx_upload_jobs_status ON upload_jobs(status);
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.3</version>
+        <version>3.3.5</version>
         <relativePath/>
     </parent>
     
@@ -608,7 +608,7 @@ CREATE INDEX idx_upload_jobs_status ON upload_jobs(status);
 ```gradle
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.3'
+    id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -776,7 +776,7 @@ flutter:
   uses-material-design: true
 ```
 
-### 6.3 React Web Dependencies (19.2.0)
+### 6.3 React Web Dependencies (19.0.0)
 
 **package.json**
 ```json
@@ -793,16 +793,16 @@ flutter:
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.4",
-    
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.0",
+
     "@aws-amplify/ui-react": "^6.5.4",
-    "aws-amplify": "^6.9.0",
-    
+    "aws-amplify": "^6.13.2",
+
     "axios": "^1.7.9",
-    "@tanstack/react-query": "^5.62.3",
-    "zustand": "^5.0.2",
+    "@tanstack/react-query": "^5.66.1",
+    "zustand": "^5.0.4",
     
     "tailwindcss": "^3.4.17",
     "@radix-ui/react-dialog": "^1.1.4",
@@ -820,14 +820,14 @@ flutter:
     "typescript": "^5.7.2",
     
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^6.0.5",
-    
-    "vitest": "^2.1.8",
+    "vite": "^6.0.7",
+
+    "vitest": "^4.0.8",
     "@testing-library/react": "^16.1.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
-    
-    "playwright": "^1.49.1",
+
+    "playwright": "^1.49.1",  // Note: Not yet installed in actual package.json
     
     "eslint": "^9.16.0",
     "prettier": "^3.4.2",
@@ -976,7 +976,7 @@ void testConcurrentUploads() {
 }
 ```
 
-**TS-002: Spring Boot 3.5.3 Observability**
+**TS-002: Spring Boot 3.3.5 Observability**
 ```java
 @Test
 @WithMockUser
@@ -1112,7 +1112,7 @@ void testPostgres17QueryPerformance() {
 - SQS Queue Depth (messages)
 - Lambda Concurrent Executions (count/limit)
 
-### 9.3 X-Ray Tracing (Spring Boot 3.5.3)
+### 9.3 X-Ray Tracing (Spring Boot 3.3.5)
 
 ```java
 @Configuration
@@ -1492,7 +1492,7 @@ rapidphoto/
 │   │   └── widget/
 │   └── pubspec.yaml
 │
-├── web/                              # React Web App (19.2.0)
+├── web/                              # React Web App (19.0.0)
 │   ├── src/
 │   │   ├── features/
 │   │   │   ├── upload/
@@ -1571,14 +1571,14 @@ rapidphoto/
 
 ### Phase 1: Infrastructure & Backend Core (Days 1-2)
 
-**Backend Foundation (Spring Boot 3.5.3)**
-- [ ] **BACK-001:** Initialize Spring Boot 3.5.3 + WebFlux project with Maven/Gradle
+**Backend Foundation (Spring Boot 3.3.5)**
+- [ ] **BACK-001:** Initialize Spring Boot 3.3.5 + WebFlux project with Maven/Gradle
 - [ ] **BACK-002:** Configure R2DBC for PostgreSQL 17.6 (reactive repositories)
 - [ ] **BACK-003:** Implement DDD domain models (Photo, User, UploadJob)
 - [ ] **BACK-004:** Setup Flyway migrations for database schema (V1-V5)
 - [ ] **BACK-005:** Configure AWS SDK v2 for S3 (async client, Spring Cloud AWS)
 - [ ] **BACK-006:** Implement JWT validation with AWS Amplify/Cognito tokens
-- [ ] **BACK-007:** Setup X-Ray tracing with Spring Boot 3.5.3 @Observed annotations
+- [ ] **BACK-007:** Setup X-Ray tracing with Spring Boot 3.3.5 @Observed annotations
 
 **Upload Feature (VSA Slice)**
 - [ ] **BACK-008:** Implement `GeneratePresignedUrlSlice` (Command handler)
@@ -1642,8 +1642,8 @@ rapidphoto/
 
 ### Phase 4: React Web App (Days 4-5)
 
-**Project Setup (React 19.2.0)**
-- [ ] **WEB-001:** Initialize Vite + React 19.2.0 + TypeScript 5.7
+**Project Setup (React 19.0.0)**
+- [ ] **WEB-001:** Initialize Vite + React 19.0.0 + TypeScript 5.7
 - [ ] **WEB-002:** Setup Tailwind CSS 3.4.17 + shadcn/ui
 - [ ] **WEB-003:** Configure AWS Amplify Gen 2 for authentication
 - [ ] **WEB-004:** Setup Axios API client with interceptors
@@ -1684,7 +1684,7 @@ rapidphoto/
 
 **Load Testing**
 - [ ] **TEST-006:** Create JMeter/K6 script for 100 concurrent uploads
-- [ ] **TEST-007:** Measure API response times (Spring Boot 3.5.3)
+- [ ] **TEST-007:** Measure API response times (Spring Boot 3.3.5)
 - [ ] **TEST-008:** Verify zero timeout errors
 - [ ] **TEST-009:** Monitor CloudWatch metrics during load test
 - [ ] **TEST-010:** Generate load test report
@@ -1693,18 +1693,18 @@ rapidphoto/
 
 **Deployment**
 - [ ] **DEPLOY-001:** Build and push Docker image to ECR (Java 17)
-- [ ] **DEPLOY-002:** Deploy backend to ECS Fargate (Spring Boot 3.5.3)
+- [ ] **DEPLOY-002:** Deploy backend to ECS Fargate (Spring Boot 3.3.5)
 - [ ] **DEPLOY-003:** Deploy Lambda function with Terraform (Python 3.13, arm64)
 - [ ] **DEPLOY-004:** Deploy web app to S3 + CloudFront or Vercel
 - [ ] **DEPLOY-005:** Build Flutter APK/AAB (Flutter 3.27+)
-- [ ] **DEPLOY-006:** Configure CloudWatch dashboard (Spring Boot 3.5.3 metrics)
+- [ ] **DEPLOY-006:** Configure CloudWatch dashboard (Spring Boot 3.3.5 metrics)
 - [ ] **DEPLOY-007:** Setup CloudWatch alarms
 
 **Documentation**
 - [ ] **DOC-001:** Write technical architecture document
 - [ ] **DOC-002:** Document API endpoints (OpenAPI/Swagger)
 - [ ] **DOC-003:** Create deployment guide (Terraform 1.9+)
-- [ ] **DOC-004:** Write version migration guide (3.2→3.5.3, 18→19, etc.)
+- [ ] **DOC-004:** Write version migration guide (3.2→3.3.5, 18→19, etc.)
 - [ ] **DOC-005:** Record demo video (5-10 minutes)
 
 ---
@@ -1737,7 +1737,7 @@ rapidphoto/
 - ✅ Zero data loss during upload/processing failures
 
 **Non-Functional:**
-- ✅ API p99 latency <500ms (Spring Boot 3.5.3 performance)
+- ✅ API p99 latency <500ms (Spring Boot 3.3.5 performance)
 - ✅ Lambda processing time <15 seconds per photo (Python 3.13, arm64)
 - ✅ UI frame rate ≥60 FPS during uploads
 - ✅ Test coverage ≥80% (backend), ≥70% (mobile/web)
@@ -1745,13 +1745,13 @@ rapidphoto/
 
 **Operational:**
 - ✅ All CloudWatch alarms configured and tested
-- ✅ X-Ray traces visible with Spring Boot 3.5.3 @Observed
+- ✅ X-Ray traces visible with Spring Boot 3.3.5 @Observed
 - ✅ Infrastructure deployable via Terraform 1.9+ in <15 minutes
 - ✅ CI/CD pipeline passes all tests on every commit
 - ✅ Documentation complete and accurate
 
 **Performance Expectations (with updated versions):**
-- **~15% faster** Spring WebFlux throughput (3.5.3 improvements)
+- **~10% faster** Spring WebFlux throughput (3.3.5 improvements)
 - **~20% faster** React rendering (concurrent features in 19.x)
 - **~10% faster** PostgreSQL queries (improved planner in 17.x)
 - **~8% faster** Lambda cold starts (Python 3.13 optimizations)
@@ -1776,9 +1776,9 @@ rapidphoto/
 
 ## 17. Version Migration Checklist
 
-### 17.1 Spring Boot 3.2 → 3.5.3
+### 17.1 Spring Boot 3.2 → 3.3.5
 
-- [ ] Update parent POM/Gradle plugin to 3.5.3
+- [ ] Update parent POM/Gradle plugin to 3.3.5
 - [ ] Verify Java 17 compatibility (or upgrade to Java 21)
 - [ ] Update Gradle to 8.1.1+ or Maven to 3.8.5+
 - [ ] Test @Observed annotations for observability
@@ -1787,10 +1787,10 @@ rapidphoto/
 - [ ] Test actuator endpoints (/health, /metrics)
 - [ ] Verify CloudWatch metrics integration
 
-### 17.2 React 18 → 19.2.0
+### 17.2 React 18 → 19.0.0
 
-- [ ] Update React and React-DOM to 19.2.0
-- [ ] Update React Router to 7.9.4
+- [ ] Update React and React-DOM to 19.0.0
+- [ ] Update React Router to 7.1.0
 - [ ] Add Suspense boundaries for async components
 - [ ] Update Testing Library to 16.1.0
 - [ ] Test concurrent rendering behavior
@@ -1850,7 +1850,7 @@ rapidphoto/
 
 ### 18.2 References
 
-- [Spring Boot 3.5.3 Release Notes](https://github.com/spring-projects/spring-boot/releases/tag/v3.5.3)
+- [Spring Boot 3.3.5 Release Notes](https://github.com/spring-projects/spring-boot/releases/tag/v3.3.5)
 - [React 19 Documentation](https://react.dev/blog/2024/12/05/react-19)
 - [Flutter 3.27 Release](https://docs.flutter.dev/release/release-notes)
 - [PostgreSQL 17 Release Notes](https://www.postgresql.org/docs/17/release-17.html)

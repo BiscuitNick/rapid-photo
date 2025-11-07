@@ -84,7 +84,7 @@
       {
         "id": "2",
         "title": "Spring WebFlux Core & Database Schema",
-        "description": "Implement the backend foundation with Spring Boot 3.5.3, WebFlux, R2DBC, Flyway migrations, and DDD aggregates for Photo, UploadJob, and User.",
+        "description": "Implement the backend foundation with Spring Boot 3.3.5, WebFlux, R2DBC, Flyway migrations, and DDD aggregates for Photo, UploadJob, and User.",
         "details": "- Generate Spring Boot project (`RapidPhotoApplication`) targeting Java 17+, include dependencies from PRD (webflux, data-r2dbc, flyway, spring-cloud-aws, validation, tracing)\n- Configure `application.yml`/profiles for R2DBC PostgreSQL 17.6, Flyway (locations `db/migration`), Amplify Cognito JWKS validation filter, Micrometer CloudWatch exporters\n- Implement Flyway scripts V1-V5 exactly as schema tables in PRD with indexes\n- Create domain models and repositories in VSA layout `features/upload/domain`, etc.; use `record`/immutables where helpful\nPseudo-code:\n```\n@Configuration\nclass SecurityConfig {\n  @Bean SecurityWebFilterChain chain(ServerHttpSecurity http) {\n    return http.oauth2ResourceServer().jwt(jwt -> jwt.jwtDecoder(amplifyDecoder())).build();\n  }\n}\ninterface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {\n  Flux<PhotoReadModel> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);\n}\n```\n- Add ObservabilityConfig with `@Bean ObservationHandler` for X-Ray and annotate service methods with `@Observed`",
         "testStrategy": "- Run `./mvnw flyway:migrate -DskipDefaultCallbacks` against local Postgres 17 docker to confirm schema\n- Unit-test Auth filter using MockWebServer + signed Cognito tokens\n- Reactor unit tests for repositories using `@DataR2dbcTest` + Testcontainers Postgres 17 ensuring schema applied",
         "priority": "medium",
@@ -95,7 +95,7 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Generate Spring Boot 3.5.3 WebFlux project",
+            "title": "Generate Spring Boot 3.3.5 WebFlux project",
             "description": "Create RapidPhotoApplication with required Maven/Gradle wrappers and dependencies from PRD.",
             "dependencies": [],
             "details": "Use Spring Initializr or manual build files to scaffold Java 17 WebFlux project containing data-r2dbc, flyway, spring-cloud-aws, validation, tracing, and testing dependencies.",
