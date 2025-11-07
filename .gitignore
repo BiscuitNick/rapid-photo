@@ -23,3 +23,53 @@ node_modules/
 
 # OS specific
 .DS_Store
+
+# Gradle
+.gradle/
+**/build/
+!src/**/build/
+gradle-app.setting
+.gradletasknamecache
+
+# Java / JVM
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+.nyc_output
+
+# IDEs
+*.iml
+.idea/
+.vscode/
+
+# Mac
+.DS_Store
+
+# Docker
+.docker/

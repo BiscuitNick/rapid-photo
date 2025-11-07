@@ -1,8 +1,11 @@
 package com.rapidphoto.config;
 
+import io.micrometer.common.KeyValue;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationHandler;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,12 +45,19 @@ public class ObservabilityConfig {
     @Bean
     public ObservationRegistryCustomizer<ObservationRegistry> commonTagsCustomizer() {
         return registry -> registry.observationConfig()
-                .observationHandler(context -> {
-                    // Add common tags to all observations
-                    context.addLowCardinalityKeyValue("application", applicationName);
-                    context.addLowCardinalityKeyValue("environment", activeProfile);
-                    context.addLowCardinalityKeyValue("host", getHostname());
-                    return context;
+                .observationHandler(new ObservationHandler<Observation.Context>() {
+                    @Override
+                    public void onStart(Observation.Context context) {
+                        // Add common tags to all observations
+                        context.addLowCardinalityKeyValue(KeyValue.of("application", applicationName));
+                        context.addLowCardinalityKeyValue(KeyValue.of("environment", activeProfile));
+                        context.addLowCardinalityKeyValue(KeyValue.of("host", getHostname()));
+                    }
+
+                    @Override
+                    public boolean supportsContext(Observation.Context context) {
+                        return true;
+                    }
                 });
     }
 
