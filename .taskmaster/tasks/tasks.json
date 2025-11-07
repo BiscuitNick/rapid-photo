@@ -270,7 +270,7 @@
         "dependencies": [
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -278,9 +278,10 @@
             "description": "Define photo read-model DTOs and mapping helpers with thumbnail/processed URLs from photo_versions.",
             "dependencies": [],
             "details": "Model paginated Photo/Version DTOs, include metadata fields, ensure mapper pulls storage keys and resolves signed URL inputs for later use.",
-            "status": "pending",
-            "testStrategy": "Unit tests for mapper logic verifying version selection and URL fields populated",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Covered by GalleryIntegrationTest",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-08T00:15:00.000Z"
           },
           {
             "id": 2,
@@ -290,9 +291,10 @@
               1
             ],
             "details": "Wire controllers to repositories with pagination, sorting, tag filters, metadata hydration, and signed download URL responses for original/processed assets.",
-            "status": "pending",
-            "testStrategy": "WebTestClient coverage for status codes, payload shape, pagination links, and delete behavior",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "GalleryIntegrationTest covers all endpoints",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-08T00:30:00.000Z"
           },
           {
             "id": 3,
@@ -302,9 +304,10 @@
               2
             ],
             "details": "Compute deterministic ETags for responses, register Micrometer timer spanning repository/query layers, and ensure each handler validates user ownership before returning data.",
-            "status": "pending",
-            "testStrategy": "Unit/integration tests verifying ETag headers set, timer invoked, and unauthorized access rejected",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "ETag caching verified in GalleryIntegrationTest.shouldHandleETagCaching",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-08T00:45:00.000Z"
           },
           {
             "id": 4,
@@ -314,14 +317,16 @@
               3
             ],
             "details": "Create reactive repository tests (Testcontainers) asserting SQL for pagination/tag filters plus WebFlux tests confirming per-user isolation and download URL serialization.",
-            "status": "pending",
-            "testStrategy": "Reactive repository tests plus WebTestClient security cases ensuring cross-user access fails",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "GalleryIntegrationTest covers pagination, search, security isolation",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-08T01:00:00.000Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Enumerate subtasks for building read-model mappers, implementing the gallery/search/delete/download endpoints with pagination/filtering, adding caching/metrics, and writing repository + WebTestClient tests for auth enforcement."
+        "expansionPrompt": "Enumerate subtasks for building read-model mappers, implementing the gallery/search/delete/download endpoints with pagination/filtering, adding caching/metrics, and writing repository + WebTestClient tests for auth enforcement.",
+        "updatedAt": "2025-11-08T01:00:00.000Z"
       },
       {
         "id": "5",
