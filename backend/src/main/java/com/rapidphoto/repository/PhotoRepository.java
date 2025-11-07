@@ -24,6 +24,11 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
     Flux<Photo> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
     /**
+     * Find all photos by user ID, ordered by creation time (no pagination).
+     */
+    Flux<Photo> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    /**
      * Find photos by user ID and status with pagination.
      */
     Flux<Photo> findByUserIdAndStatusOrderByCreatedAtDesc(UUID userId, PhotoStatus status, Pageable pageable);

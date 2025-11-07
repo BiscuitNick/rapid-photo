@@ -44,13 +44,13 @@ spring:
 
 # AWS Configuration
 aws:
-  region:
-    static: ${AWS_REGION:us-east-1}
+  region: ${AWS_REGION:us-east-1}
+  endpoint: ${AWS_ENDPOINT:} # For LocalStack in local dev
   s3:
     bucket-name: ${S3_BUCKET_NAME:rapid-photo-uploads}
-    presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:3600}
+    presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:15} # Minutes
   sqs:
-    queue-url: ${SQS_QUEUE_URL:}
+    photo-upload-queue: ${SQS_PHOTO_UPLOAD_QUEUE:photo-upload-events}
 
 # Management/Actuator
 management:
@@ -125,6 +125,13 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8080/mock-cognito # Mock for local testing
+
+aws:
+  endpoint: http://localhost:4566 # LocalStack endpoint
+  s3:
+    bucket-name: rapid-photo-uploads-local
+  sqs:
+    photo-upload-queue: photo-upload-events-local
 
 management:
   metrics:
