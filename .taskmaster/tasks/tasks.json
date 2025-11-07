@@ -189,7 +189,7 @@
         "dependencies": [
           "2"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -197,9 +197,10 @@
             "description": "Define WebFlux controller, DTOs, and command handler wiring for GeneratePresignedUrlSlice.",
             "dependencies": [],
             "details": "Clarify request/response payloads, validation annotations, and controller routes; outline command handler method signatures and dependency injection points before implementation.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Covered by UploadIntegrationTest",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T23:00:00.000Z"
           },
           {
             "id": 2,
@@ -209,9 +210,10 @@
               1
             ],
             "details": "Create UploadPolicy service to validate mime/size and enforce 100 concurrent uploads per user, implement UploadJob entity, repository, and expiry handling including s3Key generation pattern.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "UploadPolicyServiceTest covers validation and limits",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T23:15:00.000Z"
           },
           {
             "id": 3,
@@ -221,9 +223,10 @@
               2
             ],
             "details": "Wire ConfirmUploadSlice controller/application service, verify ETag from request, build Photo aggregate with status PENDING_PROCESSING, persist via repository, and publish PhotoUploadConfirmed event to SQS outbox.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "UploadIntegrationTest covers confirm flow",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T23:30:00.000Z"
           },
           {
             "id": 4,
@@ -233,9 +236,10 @@
               3
             ],
             "details": "Implement projection read model and reactive repository, expose WebFlux query handler aggregating jobs + photo statuses for each user, ensuring backpressure-friendly data flow.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "UploadIntegrationTest.shouldGetBatchUploadStatus",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T23:45:00.000Z"
           },
           {
             "id": 5,
@@ -245,14 +249,16 @@
               4
             ],
             "details": "Author comprehensive tests for initiate/confirm/batch endpoints using mocked Amplify auth context, reactive load scenarios (100 concurrent), presigned parameter assertions, and SQS message verification.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "UploadIntegrationTest with Testcontainers PostgreSQL, GeneratePresignedUrlHandlerTest, UploadPolicyServiceTest",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T23:55:00.000Z"
           }
         ],
         "complexity": 8,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Detail subtasks covering GeneratePresignedUrl controller/service/policy, UploadJob persistence with concurrency enforcement, ConfirmUpload aggregation + SQS outbox, batch status query projection, and comprehensive reactive/S3/SQS integration tests."
+        "expansionPrompt": "Detail subtasks covering GeneratePresignedUrl controller/service/policy, UploadJob persistence with concurrency enforcement, ConfirmUpload aggregation + SQS outbox, batch status query projection, and comprehensive reactive/S3/SQS integration tests.",
+        "updatedAt": "2025-11-07T23:55:00.000Z"
       },
       {
         "id": "4",
