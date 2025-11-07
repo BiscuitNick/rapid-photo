@@ -30,6 +30,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.springframework:spring-jdbc") // Required for Flyway with R2DBC
+    runtimeOnly("org.postgresql:postgresql") // JDBC driver for Flyway
 
     // Spring Cloud AWS
     implementation("io.awspring.cloud:spring-cloud-aws-starter-s3:3.2.1")
@@ -47,6 +48,12 @@ dependencies {
     // Development tools
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
+    // Lombok for reducing boilerplate
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+    testCompileOnly("org.projectlombok:lombok")
+    testAnnotationProcessor("org.projectlombok:lombok")
 
     // Test dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test")
