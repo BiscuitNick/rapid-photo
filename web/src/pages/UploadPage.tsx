@@ -25,17 +25,16 @@ export function UploadPage() {
   const hasCompletedUploads = stats.complete > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Upload Photos
-          </h1>
-          <p className="text-gray-600">
-            Upload up to 100 images at once with automatic processing
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          Upload Photos
+        </h2>
+        <p className="text-gray-600">
+          Upload up to 100 images at once with automatic processing
+        </p>
+      </div>
 
         {/* Stats Cards */}
         {queue.length > 0 && (
@@ -137,6 +136,5 @@ export function UploadPage() {
           />
         </div>
       </div>
-    </div>
   );
 }

@@ -10,6 +10,11 @@ import type {
   ConfirmUploadRequest,
   ConfirmUploadResponse,
   BatchUploadStatusResponse,
+  Photo,
+  PagedResponse,
+  GetPhotosParams,
+  SearchPhotosParams,
+  DownloadUrlResponse,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -130,6 +135,64 @@ class ApiService {
 
     // Remove quotes from ETag if present
     return etag.replace(/"/g, '');
+  }
+
+  /**
+   * Get paginated photos
+   */
+  async getPhotos(params: GetPhotosParams = {}): Promise<PagedResponse<Photo>> {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params.sort) queryParams.append('sort', params.sort);
+
+    const response = await this.client.get<PagedResponse<Photo>>(
+      `/api/v1/photos?${queryParams.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Search photos by tags
+   */
+  async searchPhotos(params: SearchPhotosParams = {}): Promise<PagedResponse<Photo>> {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params.sort) queryParams.append('sort', params.sort);
+    if (params.tags && params.tags.length > 0) {
+      params.tags.forEach(tag => queryParams.append('tags', tag));
+    }
+
+    const response = await this.client.get<PagedResponse<Photo>>(
+      `/api/v1/photos/search?${queryParams.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get single photo by ID
+   */
+  async getPhoto(photoId: string): Promise<Photo> {
+    const response = await this.client.get<Photo>(`/api/v1/photos/${photoId}`);
+    return response.data;
+  }
+
+  /**
+   * Delete photo by ID
+   */
+  async deletePhoto(photoId: string): Promise<void> {
+    await this.client.delete(`/api/v1/photos/${photoId}`);
+  }
+
+  /**
+   * Get download URL for original photo
+   */
+  async getDownloadUrl(photoId: string, version: string = 'original'): Promise<DownloadUrlResponse> {
+    const response = await this.client.get<DownloadUrlResponse>(
+      `/api/v1/photos/${photoId}/download/${version}`
+    );
+    return response.data;
   }
 }
 
