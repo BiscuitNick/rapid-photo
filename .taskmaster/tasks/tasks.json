@@ -91,7 +91,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -99,9 +99,10 @@
             "description": "Create RapidPhotoApplication with required Maven/Gradle wrappers and dependencies from PRD.",
             "dependencies": [],
             "details": "Use Spring Initializr or manual build files to scaffold Java 17 WebFlux project containing data-r2dbc, flyway, spring-cloud-aws, validation, tracing, and testing dependencies.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run ./mvnw -version and ./mvnw test (empty) to confirm project compiles.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T19:22:20.745Z"
           },
           {
             "id": 2,
@@ -111,9 +112,10 @@
               1
             ],
             "details": "Create application.yml plus profile overrides (local, test, prod) wiring R2DBC Postgres 17.6 URLs, credentials placeholders, Flyway db/migration path, Amplify JWKS endpoints, Micrometer CloudWatch exporter properties, and profile-specific logging.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run ./mvnw spring-boot:run with local profile to ensure configuration loads without errors.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T19:24:08.283Z"
           },
           {
             "id": 3,
@@ -123,9 +125,10 @@
               1
             ],
             "details": "Author incremental SQL files reflecting Photo, UploadJob, User, and supporting tables exactly as PRD specifies, including constraints, indexes, enums, and auditing columns while keeping idempotent forward migrations.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Execute ./mvnw flyway:migrate -DskipDefaultCallbacks against local Postgres 17 container to validate schema.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T19:24:19.413Z"
           },
           {
             "id": 4,
@@ -170,7 +173,8 @@
         ],
         "complexity": 8,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down generation of the Spring Boot/WebFlux project, configuration of R2DBC + Flyway profiles, creation of Flyway V1–V5 migrations from the PRD schema, implementation of domain aggregates/repositories, Cognito JWT security/filter wiring, and observability beans/tests."
+        "expansionPrompt": "Break down generation of the Spring Boot/WebFlux project, configuration of R2DBC + Flyway profiles, creation of Flyway V1–V5 migrations from the PRD schema, implementation of domain aggregates/repositories, Cognito JWT security/filter wiring, and observability beans/tests.",
+        "updatedAt": "2025-11-07T19:24:19.413Z"
       },
       {
         "id": "3",
@@ -846,7 +850,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-11-07T18:41:46.526Z",
+      "lastModified": "2025-11-07T19:24:19.415Z",
       "taskCount": 10,
       "completedCount": 1,
       "tags": [

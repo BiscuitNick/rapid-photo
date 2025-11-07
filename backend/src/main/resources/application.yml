@@ -4,13 +4,15 @@ spring:
 
   # R2DBC Configuration (Reactive PostgreSQL)
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/rapidphoto
+    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}
     username: ${DB_USERNAME:rapidphoto}
     password: ${DB_PASSWORD:changeme}
     pool:
       initial-size: 10
       max-size: 20
       max-idle-time: 30m
+      max-acquire-time: 3s
+      max-create-connection-time: 5s
 
   # Flyway Configuration (for schema migrations)
   flyway:
@@ -18,6 +20,12 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 0
+    validate-on-migrate: true
+    out-of-order: false
+    # JDBC URL for Flyway (Flyway doesn't support R2DBC yet)
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}
+    user: ${DB_USERNAME:rapidphoto}
+    password: ${DB_PASSWORD:changeme}
 
   # Security (Cognito/Amplify OAuth2)
   security:
@@ -27,18 +35,46 @@ spring:
           issuer-uri: ${COGNITO_ISSUER_URI:https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXX}
           jwk-set-uri: ${COGNITO_JWK_SET_URI:https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXX/.well-known/jwks.json}
 
+  # Data source for Flyway (JDBC)
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}
+    username: ${DB_USERNAME:rapidphoto}
+    password: ${DB_PASSWORD:changeme}
+    driver-class-name: org.postgresql.Driver
+
+# AWS Configuration
+aws:
+  region:
+    static: ${AWS_REGION:us-east-1}
+  s3:
+    bucket-name: ${S3_BUCKET_NAME:rapid-photo-uploads}
+    presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:3600}
+  sqs:
+    queue-url: ${SQS_QUEUE_URL:}
+
 # Management/Actuator
 management:
   endpoints:
     web:
+      base-path: /actuator
       exposure:
         include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    defaults:
+      enabled: true
   metrics:
     export:
       cloudwatch:
         enabled: ${CLOUDWATCH_ENABLED:false}
-        namespace: RapidPhoto
+        namespace: ${CLOUDWATCH_NAMESPACE:RapidPhoto}
         batch-size: 20
+        step: 1m
+    tags:
+      application: ${spring.application.name}
+      environment: ${SPRING_PROFILES_ACTIVE:default}
   tracing:
     sampling:
       probability: ${TRACING_PROBABILITY:0.1}
@@ -50,16 +86,16 @@ logging:
     com.rapidphoto: DEBUG
     org.springframework.data.r2dbc: DEBUG
     org.springframework.security: DEBUG
+    io.r2dbc.postgresql: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-# AWS Configuration
-aws:
-  region: ${AWS_REGION:us-east-1}
-  s3:
-    bucket: ${S3_BUCKET_NAME:rapid-photo-uploads}
-  sqs:
-    queue-url: ${SQS_QUEUE_URL:}
+# Application specific configuration
+app:
+  upload:
+    max-file-size: ${MAX_UPLOAD_SIZE:52428800} # 50MB in bytes
+    max-concurrent-uploads-per-user: ${MAX_CONCURRENT_UPLOADS:100}
+    allowed-mime-types: image/jpeg,image/png,image/heic,image/webp
 
 ---
 # Local Development Profile
@@ -73,6 +109,23 @@ spring:
     username: rapidphoto
     password: rapidphoto_dev
 
+  flyway:
+    url: jdbc:postgresql://localhost:5432/rapidphoto
+    user: rapidphoto
+    password: rapidphoto_dev
+    clean-disabled: false # Allow clean for local dev
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rapidphoto
+    username: rapidphoto
+    password: rapidphoto_dev
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/mock-cognito # Mock for local testing
+
 management:
   metrics:
     export:
@@ -83,6 +136,8 @@ logging:
   level:
     root: INFO
     com.rapidphoto: DEBUG
+    org.springframework.data.r2dbc: TRACE
+    io.r2dbc.postgresql: DEBUG
 
 ---
 # Test Profile
@@ -92,12 +147,31 @@ spring:
       on-profile: test
 
   r2dbc:
-    url: r2dbc:postgresql://localhost:5433/rapidphoto_test
-    username: test
-    password: test
+    url: r2dbc:tc:postgresql:///rapidphoto_test?TC_IMAGE_TAG=17.6
+    # Testcontainers will automatically configure these
 
   flyway:
-    clean-disabled: false
+    enabled: true
+    clean-disabled: false # Allow clean for tests
+    # Testcontainers will configure the JDBC URL
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/mock-cognito
+
+management:
+  metrics:
+    export:
+      cloudwatch:
+        enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.rapidphoto: DEBUG
+    org.testcontainers: INFO
 
 ---
 # Production Profile
@@ -106,13 +180,31 @@ spring:
     activate:
       on-profile: prod
 
+  r2dbc:
+    pool:
+      initial-size: 20
+      max-size: 50
+
+  flyway:
+    clean-disabled: true # Never allow clean in production
+    validate-on-migrate: true
+
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
   metrics:
     export:
       cloudwatch:
         enabled: true
+  tracing:
+    sampling:
+      probability: 0.5 # Higher sampling in prod for observability
 
 logging:
   level:
     root: WARN
     com.rapidphoto: INFO
+    org.springframework.data.r2dbc: INFO
+    org.springframework.security: INFO
