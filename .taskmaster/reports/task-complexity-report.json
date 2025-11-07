@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-11-07T18:12:44.921Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Monorepo Bootstrap & Tooling",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Outline subtasks for creating the multi-workspace skeleton (backend, lambda, mobile, web, infrastructure, docs), wiring each workspace’s package manager, adding shared root tooling (.editorconfig, lint/format configs, Renovate/Dependabot), setting up .github workflows, and documenting Amplify/AWS credential flows given the currently empty repo.",
+			"reasoning": "Repo currently contains only Taskmaster metadata and no product source folders (`rg --files` shows just `CLAUDE.md` plus `.taskmaster/*`), so every workspace, toolchain wrapper, and CI config must be created from scratch while keeping consistent conventions across five stacks, which is a moderately high lift."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Spring WebFlux Core & Database Schema",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down generation of the Spring Boot/WebFlux project, configuration of R2DBC + Flyway profiles, creation of Flyway V1–V5 migrations from the PRD schema, implementation of domain aggregates/repositories, Cognito JWT security/filter wiring, and observability beans/tests.",
+			"reasoning": "There is no existing backend code (`backend/` absent per repo scan), yet the task demands a full reactive Spring stack with database schema, security, and observability described in `.taskmaster/docs/rapid-photo-prd.md:1`, so it requires extensive greenfield implementation plus database/testcontainer setup."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Upload Command Slices & Presigned Flow",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Detail subtasks covering GeneratePresignedUrl controller/service/policy, UploadJob persistence with concurrency enforcement, ConfirmUpload aggregation + SQS outbox, batch status query projection, and comprehensive reactive/S3/SQS integration tests.",
+			"reasoning": "These slices depend on the yet-to-be-built WebFlux foundation and require coordinating reactive controllers, domain policies, AWS S3/SQS integrations, and command-side projections with load-testing expectations from `.taskmaster/tasks/tasks.json:1`, keeping complexity high."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Gallery Query Slices & Download APIs",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Enumerate subtasks for building read-model mappers, implementing the gallery/search/delete/download endpoints with pagination/filtering, adding caching/metrics, and writing repository + WebTestClient tests for auth enforcement.",
+			"reasoning": "Once the command side exists, this task still demands multiple query endpoints, DTO mappers, reactive pagination, signed download links, and caching/metrics layers, all absent in the repo today, yielding significant though slightly lower complexity than the command work."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Python 3.13 Image Processing Lambda Pipeline",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Plan subtasks for scaffolding the Lambda package (handler plus image/rekognition/db modules), implementing Pillow-based processing, Rekognition + S3 interactions, PostgreSQL updates with idempotency, structured logging/metrics, and pytest/localstack/load-test coverage.",
+			"reasoning": "No `lambda/` code exists, yet the feature spans image manipulation, AWS services, database updates, idempotent retries, and testing harnesses (per `.taskmaster/docs/rapid-photo-prd.md:1`), making it a complex multi-integration Lambda effort."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Flutter 3.27 Upload Experience",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "List subtasks to initialize the Flutter workspace with Amplify config, implement the Riverpod UploadQueueNotifier + persistence, build the Material 3 upload UI components, integrate with backend initiate/confirm APIs + S3 PUTs, and add unit/widget/integration tests.",
+			"reasoning": "With no `mobile/` project present, delivering concurrency-aware upload orchestration, Amplify auth, rich UI, and persistence per task description requires significant new Flutter code and test scaffolding, though bounded to a single client app."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Flutter Gallery, Search, and Download",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Define subtasks for creating gallery data services and AsyncNotifiers, building grid/detail/search UI with caching + downloads, handling tag filtering/infinite scroll, integrating Amplify Storage for downloads, and covering unit/widget/integration tests.",
+			"reasoning": "This extends the nonexistent Flutter app with complex UI states (virtualized grids, tag chips, downloads) and backend integrations; dependencies on Task4/6 mean additional coordination but scope remains client-side, yielding similar complexity to Task6."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "React 19 Upload Dashboard",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down initialization of the Vite/React/Tailwind workspace with Amplify auth, construction of the upload queue hook with concurrency/retry logic, development of drag-and-drop/progress UI components, wiring to backend and S3 PUT flows, and authoring unit/component/E2E tests.",
+			"reasoning": "With no `web/` app yet, this task introduces a full React/Amplify stack plus concurrent presigned uploads, progress UI, and rich testing (Vitest + Playwright), representing a sizable but self-contained front-end effort."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "React Gallery, Search, and Batch Download",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Outline subtasks for building paginated/gallery hooks with React Query, implementing virtualized grid/lightbox UI, adding tag search and filters, implementing batch download/zip logic, and covering unit/component/E2E/Perf tests.",
+			"reasoning": "Similar to Task8, this is greenfield React work layering advanced UI behaviors (virtualization, zip downloads) atop APIs that do not yet exist, so it remains a high-effort front-end feature set."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Infrastructure, Observability, and Load/CI Automation",
+			"complexityScore": 9,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Detail subtasks for authoring Terraform modules (networking, data, compute, messaging, CDN), environment compositions, secrets/SSM wiring, GitHub Actions pipelines per workspace, observability stacks (CloudWatch dashboards, alarms, X-Ray), load-test scripts (k6/JMeter) and their CI hooks, plus deployment/runbook documentation.",
+			"reasoning": "No Terraform or CI/CD assets exist today, yet this task spans provisioning every AWS component, building per-workspace pipelines, observability instrumentation, and automated load-testing aligned with the PRD, making it one of the most complex efforts in the program."
+		}
+	]
+}

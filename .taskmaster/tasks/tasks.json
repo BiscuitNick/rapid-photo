@@ -1,0 +1,763 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Monorepo Bootstrap & Tooling",
+        "description": "Create the RapidPhotoUpload monorepo skeleton with backend, lambda, mobile (Flutter), web (React), and infrastructure workspaces plus shared configuration.",
+        "details": "- Initialize repo structure `backend/`, `lambda/`, `mobile/`, `web/`, `infrastructure/`, `docs/`, `.github/workflows/` per PRD\n- Add root tooling: `.editorconfig`, lint configs, Renovate/Dependabot, shared README referencing v2.0 spec\n- Wire workspace package managers: Maven/Gradle wrapper, Flutter `pubspec`, React `package.json`, Lambda `requirements.txt`, Terraform backend block\nPseudo-code:\n```\nmkdir -p backend/src/main/java/... mobile/lib/... web/src/... lambda/src infrastructure/modules\ncat > .github/workflows/ci.yml <<EOF\nname: Monorepo Checks\njobs:\n  lint:\n    steps: [checkout, run linters for each workspace]\nEOF\n```\n- Document how Amplify environments, AWS creds, and local `.env` files map across apps",
+        "testStrategy": "- Verify `tree -L 2` shows required directories\n- Run `mvn -version`, `flutter --version`, `npm run build -- --help`, `terraform init -backend=false` to ensure toolchains wired\n- Add CI sanity job that runs `./gradlew help`, `flutter analyze`, `npm run lint`, `pytest` to confirm scaffolding compiles",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold monorepo directory structure",
+            "description": "Create the top-level workspace folders and placeholder files per PRD.",
+            "dependencies": [],
+            "details": "Add backend/, lambda/, mobile/, web/, infrastructure/, docs/, and .github/workflows/ along with minimal README stubs or placeholder files so git tracks them.",
+            "status": "pending",
+            "testStrategy": "Run `tree -L 2` (or equivalent) to confirm directories exist."
+          },
+          {
+            "id": 2,
+            "title": "Configure root-level tooling and automation",
+            "description": "Add shared repo-wide configs for formatting, linting, dependency management, and CI boilerplate.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create .editorconfig, root lint/format config files, Renovate/Dependabot config, and the initial README referencing the v2.0 spec. Establish .github/workflows/ci.yml with lint/build shells for each workspace.",
+            "status": "pending",
+            "testStrategy": "Lint configs validate via `yamllint`/`jsonlint` where applicable; ensure workflow passes `act -l` or GitHub syntax check."
+          },
+          {
+            "id": 3,
+            "title": "Bootstrap backend and lambda workspaces",
+            "description": "Initialize Java backend (Maven/Gradle) and Python lambda scaffolds with package manager files.",
+            "dependencies": [
+              1
+            ],
+            "details": "Generate backend Gradle or Maven wrapper, src tree, and baseline build file. For lambda, add requirements.txt, src/handler.py stub, and README describing toolchain expectations.",
+            "status": "pending",
+            "testStrategy": "Run `./gradlew help` (or `mvn -v`) and `python -m pip install -r requirements.txt --dry-run` to ensure configs are valid."
+          },
+          {
+            "id": 4,
+            "title": "Bootstrap mobile (Flutter) and web (React) workspaces",
+            "description": "Create Flutter and React app skeletons with required package manifests and scripts.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add Flutter project structure with pubspec.yaml and basic lib/ entrypoints; scaffold React workspace with package.json, src/, and lint/build scripts aligned to repo conventions.",
+            "status": "pending",
+            "testStrategy": "Execute `flutter pub get` and `npm run lint -- --help` (or `npm install --package-lock-only`) to verify scaffold integrity."
+          },
+          {
+            "id": 5,
+            "title": "Initialize infrastructure and documentation assets",
+            "description": "Set up Terraform/Infra skeleton and shared docs covering Amplify/AWS credential flow.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create infrastructure/ modules with Terraform backend block and placeholders, plus docs/ content explaining Amplify environments, AWS creds, and local .env mapping across apps.",
+            "status": "pending",
+            "testStrategy": "Run `terraform init -backend=false` to validate config; lint docs if tooling exists or manually review for completeness."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Spring WebFlux Core & Database Schema",
+        "description": "Implement the backend foundation with Spring Boot 3.5.3, WebFlux, R2DBC, Flyway migrations, and DDD aggregates for Photo, UploadJob, and User.",
+        "details": "- Generate Spring Boot project (`RapidPhotoApplication`) targeting Java 17+, include dependencies from PRD (webflux, data-r2dbc, flyway, spring-cloud-aws, validation, tracing)\n- Configure `application.yml`/profiles for R2DBC PostgreSQL 17.6, Flyway (locations `db/migration`), Amplify Cognito JWKS validation filter, Micrometer CloudWatch exporters\n- Implement Flyway scripts V1-V5 exactly as schema tables in PRD with indexes\n- Create domain models and repositories in VSA layout `features/upload/domain`, etc.; use `record`/immutables where helpful\nPseudo-code:\n```\n@Configuration\nclass SecurityConfig {\n  @Bean SecurityWebFilterChain chain(ServerHttpSecurity http) {\n    return http.oauth2ResourceServer().jwt(jwt -> jwt.jwtDecoder(amplifyDecoder())).build();\n  }\n}\ninterface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {\n  Flux<PhotoReadModel> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);\n}\n```\n- Add ObservabilityConfig with `@Bean ObservationHandler` for X-Ray and annotate service methods with `@Observed`",
+        "testStrategy": "- Run `./mvnw flyway:migrate -DskipDefaultCallbacks` against local Postgres 17 docker to confirm schema\n- Unit-test Auth filter using MockWebServer + signed Cognito tokens\n- Reactor unit tests for repositories using `@DataR2dbcTest` + Testcontainers Postgres 17 ensuring schema applied",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Generate Spring Boot 3.5.3 WebFlux project",
+            "description": "Create RapidPhotoApplication with required Maven/Gradle wrappers and dependencies from PRD.",
+            "dependencies": [],
+            "details": "Use Spring Initializr or manual build files to scaffold Java 17 WebFlux project containing data-r2dbc, flyway, spring-cloud-aws, validation, tracing, and testing dependencies.",
+            "status": "pending",
+            "testStrategy": "Run ./mvnw -version and ./mvnw test (empty) to confirm project compiles."
+          },
+          {
+            "id": 2,
+            "title": "Configure application.yml profiles for R2DBC and Flyway",
+            "description": "Set up base and environment-specific configs for PostgreSQL R2DBC, Flyway locations, Cognito JWKS, and CloudWatch metrics exporters.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create application.yml plus profile overrides (local, test, prod) wiring R2DBC Postgres 17.6 URLs, credentials placeholders, Flyway db/migration path, Amplify JWKS endpoints, Micrometer CloudWatch exporter properties, and profile-specific logging.",
+            "status": "pending",
+            "testStrategy": "Run ./mvnw spring-boot:run with local profile to ensure configuration loads without errors."
+          },
+          {
+            "id": 3,
+            "title": "Implement Flyway V1-V5 schema migrations",
+            "description": "Translate PRD schema tables and indexes into Flyway SQL scripts V1 through V5 located at db/migration.",
+            "dependencies": [
+              1
+            ],
+            "details": "Author incremental SQL files reflecting Photo, UploadJob, User, and supporting tables exactly as PRD specifies, including constraints, indexes, enums, and auditing columns while keeping idempotent forward migrations.",
+            "status": "pending",
+            "testStrategy": "Execute ./mvnw flyway:migrate -DskipDefaultCallbacks against local Postgres 17 container to validate schema."
+          },
+          {
+            "id": 4,
+            "title": "Create DDD aggregates and reactive repositories",
+            "description": "Implement Photo, UploadJob, and User aggregates plus Spring Data R2DBC repositories under the VSA feature layout.",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Define records/entities with value objects, factory/static constructors, and repositories like PhotoRepository with custom reactive queries; ensure packages follow features/upload/domain conventions and map to schema columns.",
+            "status": "pending",
+            "testStrategy": "Write @DataR2dbcTest cases using Testcontainers Postgres to verify mapping and custom query behavior."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Cognito JWT security filter with WebFlux",
+            "description": "Configure ServerHttpSecurity, resource server JWT decoder using Amplify JWKS, and custom authentication filter as described.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create SecurityConfig establishing oauth2ResourceServer jwt setup, supply Amplify decoder bean, add filter wiring for user context propagation, and ensure permissive actuator endpoints paired with secured API routes.",
+            "status": "pending",
+            "testStrategy": "Add WebTestClient security tests and MockWebServer-signed tokens to confirm valid/invalid JWT handling."
+          },
+          {
+            "id": 6,
+            "title": "Add observability configuration and annotations",
+            "description": "Provide ObservationHandler beans for AWS X-Ray and annotate services with @Observed; ensure metrics/tracing wiring works with Micrometer.",
+            "dependencies": [
+              1,
+              2,
+              4
+            ],
+            "details": "Implement ObservabilityConfig exporting ObservationHandler beans, instrument domain services with @Observed, and ensure tracing hooks integrate with CloudWatch exporters defined in config.",
+            "status": "pending",
+            "testStrategy": "Create unit/integration tests to verify ObservationHandler beans load and @Observed emits spans via Micrometer test registry."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Upload Command Slices & Presigned Flow",
+        "description": "Deliver GeneratePresignedUrl, ConfirmUpload, and batch status APIs with full DDD command handling, S3 integration, and CQRS command-side projections.",
+        "details": "- Implement `GeneratePresignedUrlSlice` command handler (controller + application service) that validates file size/mime, enforces 100 concurrent uploads/user, persists `UploadJob` with expiry, returns presigned URL (async S3 client via Spring Cloud AWS) and `s3Key` pattern `originals/{userId}/{uuid}`\n- Implement `ConfirmUploadSlice` to validate ETag, create `Photo` aggregate with status `PENDING_PROCESSING`, emit domain event `PhotoUploadConfirmed` to SQS queue (command-side outbox)\n- Add `GET /api/v1/uploads/batch/status` query handler reading projection combining UploadJob + Photo status\n- Ensure reactive backpressure, metrics (`upload.presigned.url` timer), and request validation annotations\nPseudo-code:\n```\n@Observed(name=\"upload.generate\")\npublic Mono<PresignedUrlResponse> handle(GeneratePresignedUrlCommand cmd) {\n  return uploadPolicy.verifyLimit(cmd.userId())\n    .then(s3Service.createPresignedPut(cmd.mimeType(), cmd.size()))\n    .flatMap(url -> uploadJobRepository.save(cmd.toUploadJob(url)))\n    .map(this::toResponse);\n}\n```\n- Add integration with AWS Amplify auth context to pull Cognito user id from JWT",
+        "testStrategy": "- WebTestClient integration tests hitting `/uploads/initiate` and `/uploads/{id}/confirm`\n- Mocked S3/SQS via LocalStack in Testcontainers verifying presigned parameters and message payloads\n- Reactive load test `Flux.merge` 100 requests verifying <90s aggregate completion and zero errors\n- Contract tests (Spring Cloud Contract) for initiate/confirm/status responses",
+        "priority": "medium",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design GeneratePresignedUrl command boundary",
+            "description": "Define WebFlux controller, DTOs, and command handler wiring for GeneratePresignedUrlSlice.",
+            "dependencies": [],
+            "details": "Clarify request/response payloads, validation annotations, and controller routes; outline command handler method signatures and dependency injection points before implementation.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement presigned URL policy and UploadJob persistence",
+            "description": "Build policy enforcing file constraints and concurrent upload caps plus repository persistence logic.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create UploadPolicy service to validate mime/size and enforce 100 concurrent uploads per user, implement UploadJob entity, repository, and expiry handling including s3Key generation pattern.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Implement ConfirmUpload command and Photo aggregation",
+            "description": "Create confirm handler validating ETag, persisting Photo aggregate, and emitting SQS outbox event.",
+            "dependencies": [
+              2
+            ],
+            "details": "Wire ConfirmUploadSlice controller/application service, verify ETag from request, build Photo aggregate with status PENDING_PROCESSING, persist via repository, and publish PhotoUploadConfirmed event to SQS outbox.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Build batch status query projection and API",
+            "description": "Deliver GET /api/v1/uploads/batch/status projection combining UploadJob and Photo states.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement projection read model and reactive repository, expose WebFlux query handler aggregating jobs + photo statuses for each user, ensuring backpressure-friendly data flow.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Create reactive integration tests for S3/SQS flows",
+            "description": "Cover WebTestClient plus LocalStack-backed S3/SQS integration tests.",
+            "dependencies": [
+              4
+            ],
+            "details": "Author comprehensive tests for initiate/confirm/batch endpoints using mocked Amplify auth context, reactive load scenarios (100 concurrent), presigned parameter assertions, and SQS message verification.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Gallery Query Slices & Download APIs",
+        "description": "Implement GetPhotos, SearchPhotosByTag, metadata endpoints, and download handlers adhering to CQRS read models.",
+        "details": "- Create read model mappers returning DTOs with thumbnail + processed URLs (pull from `photo_versions` table)\n- Implement `GET /api/v1/photos`, `GET /api/v1/photos/{photoId}`, `GET /api/v1/photos/search`, `DELETE /api/v1/photos/{photoId}`, and download endpoints returning signed GET URLs (original + processed)\n- Support pagination, sorting, tag filtering, metadata hydration\nPseudo-code:\n```\npublic Mono<PhotoResponse> getPhoto(UUID photoId, UUID userId) {\n  return photoViewRepository.findByIdAndUserId(photoId, userId)\n    .switchIfEmpty(Mono.error(new NotFoundException()))\n    .map(view -> new PhotoResponse(view.photo(), mapVersions(view.versions())));\n}\n```\n- Add caching hints (ETag headers) and metrics (`gallery.query.duration` timer)\n- Enforce auth checks per user aggregate boundaries",
+        "testStrategy": "- Reactive repository tests verifying SQL (Testcontainers) for pagination & tag search indexes\n- WebTestClient tests ensuring correct status codes, JSON structure, and deletion behavior\n- Security tests verifying user cannot access others' photos\n- Contract tests for gallery/search responses to unblock clients",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design read-model mappers & DTO contracts",
+            "description": "Define photo read-model DTOs and mapping helpers with thumbnail/processed URLs from photo_versions.",
+            "dependencies": [],
+            "details": "Model paginated Photo/Version DTOs, include metadata fields, ensure mapper pulls storage keys and resolves signed URL inputs for later use.",
+            "status": "pending",
+            "testStrategy": "Unit tests for mapper logic verifying version selection and URL fields populated"
+          },
+          {
+            "id": 2,
+            "title": "Implement gallery/search/delete/download endpoints",
+            "description": "Build WebFlux handlers for photo listing, detail, search, delete, and download URL generation.",
+            "dependencies": [
+              1
+            ],
+            "details": "Wire controllers to repositories with pagination, sorting, tag filters, metadata hydration, and signed download URL responses for original/processed assets.",
+            "status": "pending",
+            "testStrategy": "WebTestClient coverage for status codes, payload shape, pagination links, and delete behavior"
+          },
+          {
+            "id": 3,
+            "title": "Add caching hints, metrics, and auth enforcement",
+            "description": "Integrate ETag/conditional responses, gallery.query.duration timer, and user boundary checks.",
+            "dependencies": [
+              2
+            ],
+            "details": "Compute deterministic ETags for responses, register Micrometer timer spanning repository/query layers, and ensure each handler validates user ownership before returning data.",
+            "status": "pending",
+            "testStrategy": "Unit/integration tests verifying ETag headers set, timer invoked, and unauthorized access rejected"
+          },
+          {
+            "id": 4,
+            "title": "Write repository and WebFlux tests for queries",
+            "description": "Expand repository + WebTestClient suites to cover pagination, tag search, and security constraints.",
+            "dependencies": [
+              3
+            ],
+            "details": "Create reactive repository tests (Testcontainers) asserting SQL for pagination/tag filters plus WebFlux tests confirming per-user isolation and download URL serialization.",
+            "status": "pending",
+            "testStrategy": "Reactive repository tests plus WebTestClient security cases ensuring cross-user access fails"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Python 3.13 Image Processing Lambda Pipeline",
+        "description": "Build the arm64 Lambda that consumes SQS events, processes images (thumbnails, WebP renditions), invokes Rekognition, updates PostgreSQL, and publishes completion events.",
+        "details": "- Scaffold lambda `src/handler.py` with entry `lambda_handler(event, context)` reading SQS messages (S3 event payload)\n- Implement modules `image_processor.py`, `thumbnail_generator.py`, `webp_converter.py`, `rekognition_service.py` using Pillow 11.x routines per PRD (300x300 center crop, multi-width WebP 80% quality)\n- Use boto3 1.35+, psycopg2-binary for RDS updates (parameterized SQL). Manage connections via pooled `psycopg2.connect` with keepalive\n- Flow pseudo-code:\n```\ndef lambda_handler(event, _):\n    for record in event['Records']:\n        job = parse(record['body'])\n        img = s3.get_object(Bucket=bucket, Key=job['key'])\n        thumb = thumbnail_generator.create(img)\n        renditions = [webp_converter.resize(img, w) for w in WIDTHS]\n        labels = rekognition.detect_labels(img, MinConfidence=80.0, MaxLabels=20)\n        upload_processed_assets(thumb, renditions)\n        save_metadata(db_conn, job, labels)\n```\n- Handle retries, DLQ routing, idempotency (check photo status before update), structured logging (JSON) and CloudWatch metrics",
+        "testStrategy": "- Pytest unit tests mocking boto3/rekognition verifying image ops invoked with correct params\n- Local integration test using `moto` or LocalStack: upload sample JPEG to fake S3, trigger handler, assert DB rows updated\n- Load test script (pytest + concurrency) to ensure 100 sequential invocations stay under 15s\n- Configure alarm tests verifying DLQ metrics when forced exceptions occur",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold Lambda project and core handler",
+            "description": "Create the Python 3.13 Lambda package structure, requirements, and entrypoint handler skeleton.",
+            "dependencies": [],
+            "details": "Set up src layout, requirements (boto3, Pillow, psycopg2-binary, etc.), and basic lambda_handler(event, context) parsing SQS payloads.",
+            "status": "pending",
+            "testStrategy": "Smoke invoke lambda_handler with mocked event to ensure module imports succeed."
+          },
+          {
+            "id": 2,
+            "title": "Implement Pillow-based image modules",
+            "description": "Develop thumbnail, WebP converter, and shared image utilities per PRD specs.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create image_processor, thumbnail_generator (300x300 center crop), and webp_converter (multi-width, 80% quality) ensuring they accept streams/bytes and return in-memory buffers for uploads.",
+            "status": "pending",
+            "testStrategy": "Pytest unit tests validating PIL operations produce expected dimensions and formats."
+          },
+          {
+            "id": 3,
+            "title": "Integrate S3 I/O and Rekognition service layer",
+            "description": "Wire boto3 clients for S3 downloads/uploads and Rekognition label detection inside handler flow.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement rekognition_service wrapper, S3 fetch/upload helpers, and update handler to orchestrate downloads, processing outputs, and label detection with retries.",
+            "status": "pending",
+            "testStrategy": "Mocked boto3 tests verifying correct API calls, parameters, and error handling paths."
+          },
+          {
+            "id": 4,
+            "title": "Add PostgreSQL persistence with idempotency",
+            "description": "Implement psycopg2 connection pooling, metadata persistence, and idempotent update logic.",
+            "dependencies": [
+              1
+            ],
+            "details": "Build db module managing pooled connections, parameterized SQL, photo status checks before updates, and completion event publishing hooks.",
+            "status": "pending",
+            "testStrategy": "Pytest using psycopg2/mocked cursor to assert SQL statements, idempotency guard, and transaction handling."
+          },
+          {
+            "id": 5,
+            "title": "Implement retries, DLQ routing, logging, and metrics",
+            "description": "Enhance handler with structured logging, CloudWatch metrics, and retry/DLQ policies per PRD.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Adopt JSON logging, capture success/failure counters, expose metric dimensions, ensure exceptions surface for SQS redrive, and introduce id tracing for observability.",
+            "status": "pending",
+            "testStrategy": "Unit tests verifying log payloads/metric increments plus simulated failure paths for retry behavior."
+          },
+          {
+            "id": 6,
+            "title": "Build pytest, LocalStack, and load test coverage",
+            "description": "Create automated tests covering unit, integration, and load scenarios for the Lambda pipeline.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Add pytest suites with moto/localstack setup to run end-to-end image processing, DB writes, and concurrency load runner scripts for sequential invocations.",
+            "status": "pending",
+            "testStrategy": "Pytest collection for unit/integration targets and concurrency script verifying throughput and absence of regressions."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Flutter 3.27 Upload Experience",
+        "description": "Implement the Flutter (Riverpod 3.0.1) upload selection, queue manager, Amplify auth integration, and Material 3 progress UI supporting 100 concurrent uploads.",
+        "details": "- Configure Amplify Gen 2 (Auth + Storage) using `amplify configure project`, store config in `mobile/lib/shared/auth/amplify_auth_service.dart`\n- Build `UploadQueueNotifier extends AsyncNotifier<List<UploadItem>>` controlling queue, concurrency (max 10 parallel) using `Future.wait` batches hitting backend initiate/confirm endpoints + presigned PUT via `dio`\n- UI: `UploadScreen` with Material 3 `SegmentedButton` filters, list of `UploadProgressCard` showing statuses (queued/uploading/processing/complete)\nPseudo-code:\n```\nfinal uploadQueueProvider = AsyncNotifierProvider<UploadQueueNotifier, QueueState>(() {\n  return UploadQueueNotifier(uploadService, connectivity);\n});\nclass UploadQueueNotifier extends AsyncNotifier<QueueState> {\n  Future<void> addFiles(List<XFile> picks) async {\n    state = AsyncLoading();\n    final chunks = picks.slices(10);\n    for (final chunk in chunks) {\n      await Future.wait(chunk.map(uploadSingle));\n    }\n    state = AsyncData(state.value.copyWith(status: Status.complete));\n  }\n}\n```\n- Support background-safe persistence (SharedPreferences) to resume queued uploads",
+        "testStrategy": "- `flutter test` unit tests for UploadQueueNotifier (mock API) verifying concurrency cap and retry logic\n- Widget tests ensuring Material 3 progress bars render 100 items without dropped frames (use `WidgetTester.pumpFrames`)\n- Integration test (Patrol) to simulate selecting 100 mock photos and confirming UI remains responsive\n- Manual performance profile on iOS/Android ensuring 60fps during queue operations",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Flutter workspace with Amplify Gen 2",
+            "description": "Create the Flutter 3.27 project structure and configure Amplify Gen 2 auth+storage.",
+            "dependencies": [],
+            "details": "Run flutter create if needed, add amplify_flutter/amplify_auth_cognito/amplify_storage_s3 packages, execute amplify configure project, and place generated config in mobile/lib/shared/auth/amplify_auth_service.dart.",
+            "status": "pending",
+            "testStrategy": "Manual flutter run to ensure project builds after Amplify config files are linked."
+          },
+          {
+            "id": 2,
+            "title": "Implement Amplify auth/storage service layer",
+            "description": "Build reusable auth and storage wrappers handling sign-in/out and token refreshing.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create AmplifyAuthService encapsulating Amplify initialization, session refresh, credential caching, and shared access for queue/upload services with Riverpod providers.",
+            "status": "pending",
+            "testStrategy": "Unit tests mocking Amplify classes to validate initialization flow and error handling."
+          },
+          {
+            "id": 3,
+            "title": "Develop UploadQueueNotifier with persistence",
+            "description": "Implement Riverpod AsyncNotifier managing queue state, concurrency, and SharedPreferences persistence.",
+            "dependencies": [
+              2
+            ],
+            "details": "Define UploadItem/QueueState models, enforce max 10 parallel uploads using Future.wait batches, persist pending uploads to SharedPreferences, and resume on app restart.",
+            "status": "pending",
+            "testStrategy": "flutter test verifying concurrency cap, resume logic, and retries using mocked services."
+          },
+          {
+            "id": 4,
+            "title": "Build Material 3 upload UI components",
+            "description": "Create UploadScreen, SegmentedButton filters, and UploadProgressCard list rendering 100 items smoothly.",
+            "dependencies": [
+              3
+            ],
+            "details": "Use Riverpod consumer widgets to bind queue state, Material 3 components for progress indicators, and ensure virtualization/scroll performance for large lists.",
+            "status": "pending",
+            "testStrategy": "Widget tests with WidgetTester.pumpFrames confirming UI renders cards and reacts to state transitions."
+          },
+          {
+            "id": 5,
+            "title": "Integrate backend APIs and end-to-end tests",
+            "description": "Wire queue to backend initiate/confirm endpoints, presigned S3 PUT via dio, and add patrol integration tests.",
+            "dependencies": [
+              4
+            ],
+            "details": "Implement service methods calling backend REST APIs, handle presigned uploads with dio, confirm completion updates queue, then create Patrol integration test simulating 100 uploads.",
+            "status": "pending",
+            "testStrategy": "Patrol integration test script driving mock photo selection plus automated verification of status flow."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Flutter Gallery, Search, and Download",
+        "description": "Deliver Flutter gallery screens with Riverpod AsyncNotifiers, cached thumbnails, search by AI tags, and download/share actions.",
+        "details": "- Implement `GalleryAsyncNotifier` fetching paginated photos via `/api/v1/photos` using `dio` + Reactor paged response; maintain infinite scroll and pull-to-refresh\n- Build `GalleryScreen` grid using `SliverGrid` + `cached_network_image` for thumbnails; `PhotoDetailScreen` showing processed resolutions, metadata, download buttons hitting signed URLs\n- Tag search UI with `Chips` that call `/api/v1/photos/search?tags=` and display matched tags\nPseudo-code:\n```\nfinal galleryProvider = AsyncNotifierProvider.autoDispose<GalleryNotifier, GalleryState>(\n  () => GalleryNotifier(galleryService),\n);\nclass GalleryNotifier extends AsyncNotifier<GalleryState> {\n  Future<void> fetchNext() async {\n    final response = await galleryService.getPhotos(page: state.page + 1);\n    state = AsyncData(state.append(response.content));\n  }\n}\n```\n- Implement download service leveraging Amplify Storage to fetch original/optimized images\n- Add Material 3 search field with debounced Riverpod provider",
+        "testStrategy": "- Unit tests for GalleryService parsing DTOs\n- Widget tests verifying grid virtualization and tag chip interactions\n- Integration test (Patrol) covering search + download flow (mock API)\n- Performance profiling ensuring infinite scroll keeps memory stable (<250MB) with 1000 photos",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement gallery data services and DTO parsing",
+            "description": "Create Dio-based gallery service with paged Reactor responses and tag search support.",
+            "dependencies": [],
+            "details": "Define photo DTOs, Reactor paged response wrappers, and Dio client methods for /api/v1/photos and /api/v1/photos/search endpoints with proper error handling.",
+            "status": "pending",
+            "testStrategy": "Unit-test JSON parsing and pagination helpers with mocked Dio responses."
+          },
+          {
+            "id": 2,
+            "title": "Build GalleryAsyncNotifier and state management",
+            "description": "Wire Riverpod AsyncNotifier logic for pagination, refresh, and search.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement GalleryAsyncNotifier, state models, and provider configuration managing initial load, fetchNext, refresh, and debounced tag search plumbing.",
+            "status": "pending",
+            "testStrategy": "Unit-test notifier behaviors for empty, paginated, and error states using mocked GalleryService."
+          },
+          {
+            "id": 3,
+            "title": "Develop gallery, detail, and search UI screens",
+            "description": "Create SliverGrid gallery, photo detail view, and search chips using cached thumbnails.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement GalleryScreen grid with CachedNetworkImage, pull-to-refresh, PhotoDetailScreen showing resolutions/metadata and download/share buttons, and Material 3 search field plus chip list bound to notifier.",
+            "status": "pending",
+            "testStrategy": "Widget-test gallery grid virtualization, chip selection, and detail view rendering with fake data."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Amplify Storage downloads and share actions",
+            "description": "Connect detail actions to Amplify Storage signed URL downloads.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement download service leveraging Amplify Storage to request original/optimized URLs, trigger file save/share intents, and surface progress/errors in detail UI.",
+            "status": "pending",
+            "testStrategy": "Unit-test download service using mocked Amplify responses; integration smoke for button tap flow with fakes."
+          },
+          {
+            "id": 5,
+            "title": "Implement comprehensive automated tests",
+            "description": "Add widget, unit, and Patrol integration tests covering gallery flows.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Author unit tests for services/notifiers, widget tests for grid/search interactions, and Patrol integration validating search-filter-download scenario with mocked backend/storage.",
+            "status": "pending",
+            "testStrategy": "Run flutter test for unit/widget suites and Patrol integration in CI with mocked APIs."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "React 19 Upload Dashboard",
+        "description": "Build the React (Vite, TS 5.7) upload feature with Amplify auth, drag-and-drop selector, concurrent presigned uploads, progress indicators, and retry support.",
+        "details": "- Initialize Vite React app with Tailwind + shadcn UI components, configure Amplify Gen2 using `aws-amplify` v6; create `useAuth` hook storing Cognito tokens in Zustand store\n- Implement `useUploadQueue` hook leveraging `@tanstack/react-query` mutations + `Promise.allSettled` batches (10 at a time) to call backend initiate/confirm endpoints and PUT to S3\n- UI components: `UploadDropzone` (react-dropzone) for 100 files, `UploadList` showing per-file radial + linear progress using `@radix-ui/react-progress`, toast notifications on completion/failure, batch controls (pause/resume/retry failed)\nPseudo-code:\n```\nconst useUploadQueue = createUploadQueue(() => {\n  const { mutateAsync: initiate } = useInitiateUpload();\n  const uploadFile = async (file: File) => {\n    const presigned = await initiate({ fileName: file.name, ... });\n    await axios.put(presigned.url, file, { headers: { 'Content-Type': file.type } });\n    await confirmMutation.mutateAsync({ uploadId: presigned.uploadId, etag });\n  };\n  return limiter(queueFiles, uploadFile, { concurrency: 10 });\n});\n```\n- Ensure UI remains responsive via React 19 transitions (`startTransition`) when updating 100-item list",
+        "testStrategy": "- Vitest unit tests for hook logic (mock axios) verifying concurrency + retries\n- React Testing Library component tests ensuring drag/drop, progress rendering, and non-blocking interaction\n- Playwright E2E uploading 20 fixture images (scaled test) verifying status states and error handling\n- Lighthouse performance check to ensure 60fps interactions",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold React 19 Vite workspace with Tailwind and Amplify",
+            "description": "Create the Vite React 19 + TypeScript project, add Tailwind/shadcn, configure Amplify Gen2 auth, and set up a Zustand-backed useAuth hook.",
+            "dependencies": [],
+            "details": "Initialize Vite app, install Tailwind/shadcn, aws-amplify v6, Zustand, configure Amplify per environment, and wire a useAuth hook persisting Cognito tokens in the store.",
+            "status": "pending",
+            "testStrategy": "Manual smoke run plus unit tests for the Zustand useAuth hook with mocked Amplify clients."
+          },
+          {
+            "id": 2,
+            "title": "Implement concurrent upload queue hook logic",
+            "description": "Develop the useUploadQueue hook orchestrating initiate/confirm API calls, presigned PUTs, concurrency limits, retries, and queue state management.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use @tanstack/react-query mutations, Promise.allSettled batching of 10 uploads, limiter for concurrency, retry strategy with exponential backoff, and expose pause/resume/retry controls.",
+            "status": "pending",
+            "testStrategy": "Vitest unit tests mocking axios/react-query to assert concurrency cap, retry behavior, and state transitions."
+          },
+          {
+            "id": 3,
+            "title": "Build drag-and-drop selection and progress UI components",
+            "description": "Create UploadDropzone and UploadList components using react-dropzone and Radix progress indicators to handle up to 100 files with responsive transitions.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement dropzone with validation, transitions via startTransition, per-file radial/linear progress, toast notifications, and batch action buttons for pause/resume/retry failed uploads.",
+            "status": "pending",
+            "testStrategy": "React Testing Library component tests covering drag/drop interactions, progress rendering, toast triggers, and responsiveness with 100 items."
+          },
+          {
+            "id": 4,
+            "title": "Wire upload queue to backend initiate/confirm + S3 PUT flows",
+            "description": "Connect hooks and UI to backend APIs for initiating uploads, uploading to S3 via presigned URLs, and confirming completion with etag handling.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Integrate axios/fetch calls to backend endpoints, ensure headers and payloads match contract, capture ETag from PUT responses, and confirm uploads while updating queue state consistently.",
+            "status": "pending",
+            "testStrategy": "Integration-style tests using mocked server handlers (msw) verifying initiate/confirm payloads, S3 PUT invocation, and error handling paths."
+          },
+          {
+            "id": 5,
+            "title": "Author automated tests and end-to-end validation",
+            "description": "Implement Vitest, RTL, and Playwright suites to cover hook logic, UI behavior, and full upload flows with fixture files.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Configure Vitest + RTL for hooks/components, add Playwright E2E running 20 fixture uploads covering retries and progress, document scripts and CI entry points.",
+            "status": "pending",
+            "testStrategy": "Vitest for hooks, RTL for components, Playwright for E2E uploads with assertions on progress, completion, and retry states."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "React Gallery, Search, and Batch Download",
+        "description": "Implement the React gallery experience with responsive grid, tag-based search, batch download, and photo detail overlays.",
+        "details": "- Create `usePhotos` hook with React Query for paginated `/photos` endpoint, caching pages and supporting optimistic refresh after uploads complete\n- Build `GalleryGrid` using CSS grid + virtualized list (e.g., `react-virtual`) for performance, `PhotoCard` showing thumbnail, tags, quick actions; `PhotoLightbox` modal with processed resolutions\n- Implement search/filter controls (tags, sort), reuse backend search API; show matched tags metadata field from response\n- Batch download: allow selecting multiple photos, fetch presigned GET URLs, zip in browser using `fflate`, trigger download\nPseudo-code:\n```\nconst { data, fetchNextPage } = useInfiniteQuery(['photos', filters], fetchPhotos, {\n  getNextPageParam: last => last.nextPage,\n});\nconst handleBatchDownload = async () => {\n  const urls = await Promise.all(selected.map(getDownloadUrl));\n  const zip = new Zip();\n  for (const url of urls) zip.add(await fetchBlob(url));\n  triggerFile(zip.toBlob(), 'photos.zip');\n};\n```\n- Integrate notifications (Radix Toast) for download completion errors",
+        "testStrategy": "- Vitest tests for hooks ensuring pagination parameters and filter serialization\n- React Testing Library tests for selection logic + modal display\n- Playwright E2E verifying search results change with tag filters and 5-photo batch download works\n- Performance test (Lighthouse + React Profiler) to ensure virtualization keeps main thread under 50ms during scroll",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement usePhotos React Query hook",
+            "description": "Create an infinite React Query hook that fetches paginated photos with filtering and optimistic refresh.",
+            "dependencies": [],
+            "details": "Define fetcher for /photos and /photos/search endpoints, wire useInfiniteQuery with filters key, expose helpers for refreshing after uploads and flattening pages.",
+            "status": "pending",
+            "testStrategy": "Vitest hook tests mocking fetchPhotos to verify pagination params, cache keys, and refresh behavior."
+          },
+          {
+            "id": 2,
+            "title": "Build GalleryGrid, PhotoCard, and Lightbox",
+            "description": "Render a responsive, virtualized gallery grid with photo cards, tags, and a modal lightbox showing resolutions.",
+            "dependencies": [
+              1
+            ],
+            "details": "Compose CSS grid plus react-virtual list, integrate PhotoCard actions (select, open modal), and build PhotoLightbox with metadata + processed URLs using usePhotos data.",
+            "status": "pending",
+            "testStrategy": "React Testing Library component tests to ensure virtualization renders items, photo selection toggles, and lightbox displays chosen photo."
+          },
+          {
+            "id": 3,
+            "title": "Implement tag search and sort controls",
+            "description": "Add UI for filtering by tags and sort order, reusing backend search API and showing matched tag metadata.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create controlled inputs/chips for tags and dropdown for sort, serialize filters into hook key, surface matchedTags field on cards/lightbox, debounce user input to limit requests.",
+            "status": "pending",
+            "testStrategy": "RTL tests to simulate filter changes and confirm hook refetch with new params plus matched tag display."
+          },
+          {
+            "id": 4,
+            "title": "Add batch selection and download ZIP flow",
+            "description": "Enable selecting multiple photos and downloading them as a zipped archive via presigned URLs.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Maintain selected photo state, fetch presigned GET URLs, stream blobs, zip with fflate, handle success/error toasts, and guard double submissions.",
+            "status": "pending",
+            "testStrategy": "Integration-style RTL test mocking download URLs + Blob to assert zip creation request and toast notifications; unit test download helper functions."
+          },
+          {
+            "id": 5,
+            "title": "Expand test coverage and perf validation",
+            "description": "Cover hooks, components, E2E flows, and performance baselines for gallery, search, and downloads.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Author Vitest suite for usePhotos, RTL suites for grid/search/download, Playwright E2E for tag search + 5-photo batch download, run Lighthouse/Profiler for virtualization perf.",
+            "status": "pending",
+            "testStrategy": "Playwright scenario for filter + download, Vitest/RTL suites, Lighthouse + React Profiler report to confirm scrolling remains <16ms."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Infrastructure, Observability, and Load/CI Automation",
+        "description": "Provision AWS infrastructure via Terraform 1.9+, configure CI/CD, observability, and load tests meeting PRD success metrics.",
+        "details": "- Build Terraform modules (VPC, RDS 17.6, S3 with lifecycle + event notifications, SQS with DLQ, ECS Fargate service, Lambda, CloudFront optional) and environment folders (dev/prod)\n- Wire CI/CD workflows per workspace (backend, lambda, mobile, web) invoking tests, builds, Docker push, ECS deploy, Lambda publish, Flutter build, web deploy (CloudFront/S3)\n- Configure CloudWatch metrics/alarms listed in PRD, CloudWatch dashboard (RED/USE), X-Ray tracing integration, and IAM roles (least privilege)\n- Author k6/JMeter scripts hitting `/uploads/initiate` 100 concurrent requests + confirm/poll endpoints to verify ≤90s SLA; integrate into CI gating\nPseudo-code:\n```\nmodule \"ecs\" {\n  source = \"./modules/ecs\"\n  task_cpu = 1024\n  task_memory = 2048\n  min_capacity = 2\n  max_capacity = 10\n}\n```\n- Document deployment + rollback runbooks in `docs/deployment.md` and ensure secrets managed via AWS SSM/Secrets Manager",
+        "testStrategy": "- `terraform validate` + `terraform plan` in CI for each environment\n- GitHub Actions pipeline runs `./gradlew test`, `pytest`, `flutter test`, `npm run test`, `k6 run load.js`; fail build if metrics exceed thresholds\n- Smoke tests post-deploy: hit health endpoints, run scripted upload->process->gallery verification\n- Monitor CloudWatch alarms during load test ensuring error rates < thresholds",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Terraform module architecture and state layout",
+            "description": "Define the folder/module structure for Terraform 1.9+ and remote state strategy for dev/prod.",
+            "dependencies": [],
+            "details": "Outline modules for VPC, data stores, messaging, compute, CDN, and shared locals; specify backend config, workspaces, and required variables/outputs.",
+            "status": "pending",
+            "testStrategy": "Peer review of ADR plus terraform init/validate on empty skeleton"
+          },
+          {
+            "id": 2,
+            "title": "Implement networking foundations module",
+            "description": "Author Terraform for VPC, subnets, gateways, routing, and security groups consumed by other stacks.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create reusable module with IPv4/6 CIDRs, public/private subnets, NAT, route tables, flow logs, SG defaults, and outputs consumed by ECS/RDS/Lambda.",
+            "status": "pending",
+            "testStrategy": "terraform validate plus terratest module plan snapshot"
+          },
+          {
+            "id": 3,
+            "title": "Implement data and messaging modules",
+            "description": "Build Terraform modules for RDS 17.6, S3 buckets with lifecycle/events, SQS queues with DLQs.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Parameterize storage encryption, backup, subnet groups, bucket policies, event notifications to SQS/Lambda, queue redrive policies, and IAM attachments.",
+            "status": "pending",
+            "testStrategy": "terraform plan with mock vars, unit terratest for RDS parameter groups and queue policies"
+          },
+          {
+            "id": 4,
+            "title": "Implement compute and CDN modules",
+            "description": "Create ECS Fargate service, Lambda package infra, and optional CloudFront distribution modules.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Define task definitions, autoscaling, ALB target groups, Lambda aliases, permissions, CloudFront origins/caches, and necessary IAM roles for deploy pipelines.",
+            "status": "pending",
+            "testStrategy": "terraform plan plus module-level terratest checking rendered JSON definitions"
+          },
+          {
+            "id": 5,
+            "title": "Compose dev/prod environments and secrets wiring",
+            "description": "Assemble environment folders referencing modules and integrate AWS SSM/Secrets Manager parameters.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Instantiate modules per env, configure remote state, pass env-specific scaling, create secrets, attach IAM policies, and document variable conventions.",
+            "status": "pending",
+            "testStrategy": "terraform validate/plan per workspace with mocked tfvars"
+          },
+          {
+            "id": 6,
+            "title": "Configure GitHub Actions pipelines per workspace",
+            "description": "Author backend, lambda, mobile, and web workflows handling build/test/deploy steps.",
+            "dependencies": [
+              5
+            ],
+            "details": "Add matrixed jobs running language toolchains, Docker build/push, ECS deploy, Lambda publish, Flutter/web deploy, with Terraform validation gates and artifact passing.",
+            "status": "pending",
+            "testStrategy": "gh workflow lint via act/dry-run plus shellcheck on scripts"
+          },
+          {
+            "id": 7,
+            "title": "Build observability stack and IAM guardrails",
+            "description": "Configure CloudWatch dashboards, alarms, X-Ray tracing, and least-privilege roles.",
+            "dependencies": [
+              4,
+              5
+            ],
+            "details": "Implement RED/USE metrics, PRD alarm thresholds, dashboard JSON, tracing groups, log retention, IAM policies for services and CI roles to emit telemetry.",
+            "status": "pending",
+            "testStrategy": "terraform plan verifies resources; unit tests for IAM policy rendering using policy_sentry or infracost diff"
+          },
+          {
+            "id": 8,
+            "title": "Develop load-test scripts and deployment/runbook docs",
+            "description": "Create k6/JMeter scripts for upload flow, wire into CI gating, and author deployment/rollback runbooks.",
+            "dependencies": [
+              6,
+              7
+            ],
+            "details": "Script 100 concurrent initiate/confirm flows validating SLA, wrap in CI step failing on thresholds, and update docs/deployment.md with procedures and secret handling.",
+            "status": "pending",
+            "testStrategy": "k6/JMeter dry-run locally plus CI job executing scripts with synthetic endpoints"
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-11-07T18:10:22.864Z",
+      "updated": "2025-11-07T18:10:22.864Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
