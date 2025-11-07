@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rapid_photo_mobile/features/upload/widgets/upload_screen.dart';
+import 'package:rapid_photo_mobile/shared/auth/amplify_auth_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
     const ProviderScope(
       child: RapidPhotoApp(),
@@ -25,47 +29,71 @@ class RapidPhotoApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('RapidPhoto Upload'),
       ),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(
+            const Icon(
               Icons.photo_library,
               size: 80,
               color: Colors.blue,
             ),
-            SizedBox(height: 24),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'Welcome to RapidPhoto Upload',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'Flutter 3.27 Mobile App',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
-            SizedBox(height: 32),
-            Text(
+            const SizedBox(height: 32),
+            const Text(
               'Features:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 8),
-            Text('• Upload up to 100 photos concurrently'),
-            Text('• Gallery with infinite scroll'),
-            Text('• AI-powered tag search'),
-            Text('• Download and share photos'),
+            const SizedBox(height: 8),
+            const Text('• Upload up to 100 photos concurrently'),
+            const Text('• Gallery with infinite scroll'),
+            const Text('• AI-powered tag search'),
+            const Text('• Download and share photos'),
+            const SizedBox(height: 32),
+            FilledButton.icon(
+              onPressed: () => _navigateToUpload(context, ref),
+              icon: const Icon(Icons.cloud_upload),
+              label: const Text('Go to Upload'),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _navigateToUpload(BuildContext context, WidgetRef ref) async {
+    // Initialize Amplify before navigating
+    final authService = ref.read(amplifyAuthServiceProvider);
+    try {
+      await authService.configure();
+    } catch (e) {
+      // Amplify might already be configured
+    }
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const UploadScreen(),
       ),
     );
   }
