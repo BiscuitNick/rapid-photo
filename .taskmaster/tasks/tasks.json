@@ -139,10 +139,10 @@
               3
             ],
             "details": "Define records/entities with value objects, factory/static constructors, and repositories like PhotoRepository with custom reactive queries; ensure packages follow features/upload/domain conventions and map to schema columns.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Write @DataR2dbcTest cases using Testcontainers Postgres to verify mapping and custom query behavior.",
             "parentId": "undefined",
-            "updatedAt": "2025-11-07T19:25:49.781Z"
+            "updatedAt": "2025-11-07T21:00:00.000Z"
           },
           {
             "id": 5,
