@@ -125,10 +125,10 @@
               1
             ],
             "details": "Author incremental SQL files reflecting Photo, UploadJob, User, and supporting tables exactly as PRD specifies, including constraints, indexes, enums, and auditing columns while keeping idempotent forward migrations.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Execute ./mvnw flyway:migrate -DskipDefaultCallbacks against local Postgres 17 container to validate schema.",
             "parentId": "undefined",
-            "updatedAt": "2025-11-07T19:24:19.413Z"
+            "updatedAt": "2025-11-07T19:25:21.736Z"
           },
           {
             "id": 4,
@@ -139,9 +139,10 @@
               3
             ],
             "details": "Define records/entities with value objects, factory/static constructors, and repositories like PhotoRepository with custom reactive queries; ensure packages follow features/upload/domain conventions and map to schema columns.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Write @DataR2dbcTest cases using Testcontainers Postgres to verify mapping and custom query behavior.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2025-11-07T19:25:49.781Z"
           },
           {
             "id": 5,
@@ -174,7 +175,7 @@
         "complexity": 8,
         "recommendedSubtasks": 6,
         "expansionPrompt": "Break down generation of the Spring Boot/WebFlux project, configuration of R2DBC + Flyway profiles, creation of Flyway V1–V5 migrations from the PRD schema, implementation of domain aggregates/repositories, Cognito JWT security/filter wiring, and observability beans/tests.",
-        "updatedAt": "2025-11-07T19:24:19.413Z"
+        "updatedAt": "2025-11-07T19:25:49.781Z"
       },
       {
         "id": "3",
@@ -850,7 +851,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-11-07T19:24:19.415Z",
+      "lastModified": "2025-11-07T19:25:49.783Z",
       "taskCount": 10,
       "completedCount": 1,
       "tags": [
