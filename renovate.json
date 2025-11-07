@@ -1,0 +1,46 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "dependencyDashboard": true,
+  "labels": ["dependencies"],
+  "schedule": ["before 5am on Monday"],
+  "prConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "matchManagers": ["gradle", "gradle-wrapper"],
+      "matchPaths": ["backend/**"],
+      "labels": ["backend", "dependencies"],
+      "groupName": "backend dependencies"
+    },
+    {
+      "matchManagers": ["pip_requirements", "pip_setup"],
+      "matchPaths": ["lambda/**"],
+      "labels": ["lambda", "dependencies"],
+      "groupName": "lambda dependencies"
+    },
+    {
+      "matchManagers": ["pub"],
+      "matchPaths": ["mobile/**"],
+      "labels": ["mobile", "dependencies"],
+      "groupName": "mobile dependencies"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPaths": ["web/**"],
+      "labels": ["web", "dependencies"],
+      "groupName": "web dependencies"
+    },
+    {
+      "matchManagers": ["terraform"],
+      "matchPaths": ["infrastructure/**"],
+      "labels": ["infrastructure", "dependencies"],
+      "groupName": "infrastructure dependencies"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "assignees": ["@rapid-photo-team"]
+  }
+}

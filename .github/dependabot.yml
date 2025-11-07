@@ -1,0 +1,73 @@
+version: 2
+updates:
+  # Backend (Java/Gradle)
+  - package-ecosystem: "gradle"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "rapid-photo-team"
+    labels:
+      - "dependencies"
+      - "backend"
+
+  # Lambda (Python)
+  - package-ecosystem: "pip"
+    directory: "/lambda"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "rapid-photo-team"
+    labels:
+      - "dependencies"
+      - "lambda"
+
+  # Mobile (Flutter/Dart)
+  - package-ecosystem: "pub"
+    directory: "/mobile"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "rapid-photo-team"
+    labels:
+      - "dependencies"
+      - "mobile"
+
+  # Web (npm)
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "rapid-photo-team"
+    labels:
+      - "dependencies"
+      - "web"
+
+  # Infrastructure (Terraform)
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "rapid-photo-team"
+    labels:
+      - "dependencies"
+      - "infrastructure"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "rapid-photo-team"
+    labels:
+      - "dependencies"
+      - "ci-cd"

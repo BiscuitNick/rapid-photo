@@ -1,0 +1,22 @@
+# Example Terraform Variables
+# Copy this file to terraform.tfvars and fill in your values
+
+aws_region  = "us-east-1"
+environment = "dev"
+
+# Networking
+vpc_cidr = "10.0.0.0/16"
+
+# Database
+db_instance_class = "db.t4g.medium"
+db_name           = "rapidphoto"
+
+# Storage
+s3_bucket_name = "rapid-photo-uploads-dev"
+
+# Compute
+backend_docker_image = "your-ecr-repo/rapid-photo-backend:latest"
+ecs_task_cpu         = 1024
+ecs_task_memory      = 2048
+ecs_min_capacity     = 2
+ecs_max_capacity     = 10
