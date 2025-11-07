@@ -32,8 +32,8 @@ dependencies {
     implementation("org.springframework:spring-jdbc") // Required for Flyway with R2DBC
 
     // Spring Cloud AWS
-    implementation("io.awspring.cloud:spring-cloud-aws-starter-s3:3.2.1")
-    implementation("io.awspring.cloud:spring-cloud-aws-starter-sqs:3.2.1")
+    implementation("io.awspring.cloud:spring-cloud-aws-starter-s3:3.4.0")
+    implementation("io.awspring.cloud:spring-cloud-aws-starter-sqs:3.4.0")
 
     // Security (OAuth2 Resource Server for Cognito)
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
@@ -42,7 +42,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-cloudwatch2")
     implementation("io.micrometer:micrometer-tracing-bridge-brave")
-    implementation("io.awspring.cloud:spring-cloud-aws-starter-parameter-store:3.2.1")
+    implementation("io.awspring.cloud:spring-cloud-aws-starter-parameter-store:3.4.0")
 
     // Development tools
     developmentOnly("org.springframework.boot:spring-boot-devtools")
