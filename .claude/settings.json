@@ -1,0 +1,11 @@
+{
+  "allowedTools": [
+    "Edit",
+    "Bash(task-master *)",
+    "Bash(git *)",
+    "Bash(gh *)",
+    "Bash(npm *)",
+    "Bash(./gradlew *)",
+    "mcp__task_master_ai__*"
+  ]
+}
