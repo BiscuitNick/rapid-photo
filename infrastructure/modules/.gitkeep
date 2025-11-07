@@ -1,0 +1,9 @@
+# Placeholder for Terraform modules
+# Modules will be created in subsequent tasks:
+# - networking/  (VPC, subnets, security groups)
+# - database/    (RDS PostgreSQL 17.6)
+# - storage/     (S3 buckets, lifecycle policies)
+# - messaging/   (SQS queues, DLQ)
+# - compute/     (ECS Fargate, Lambda, ALB)
+# - cdn/         (CloudFront distribution)
+# - observability/ (CloudWatch dashboards, alarms, X-Ray)

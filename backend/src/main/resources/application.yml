@@ -1,0 +1,118 @@
+spring:
+  application:
+    name: rapid-photo-backend
+
+  # R2DBC Configuration (Reactive PostgreSQL)
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/rapidphoto
+    username: ${DB_USERNAME:rapidphoto}
+    password: ${DB_PASSWORD:changeme}
+    pool:
+      initial-size: 10
+      max-size: 20
+      max-idle-time: 30m
+
+  # Flyway Configuration (for schema migrations)
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  # Security (Cognito/Amplify OAuth2)
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${COGNITO_ISSUER_URI:https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXX}
+          jwk-set-uri: ${COGNITO_JWK_SET_URI:https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXX/.well-known/jwks.json}
+
+# Management/Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      cloudwatch:
+        enabled: ${CLOUDWATCH_ENABLED:false}
+        namespace: RapidPhoto
+        batch-size: 20
+  tracing:
+    sampling:
+      probability: ${TRACING_PROBABILITY:0.1}
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.rapidphoto: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# AWS Configuration
+aws:
+  region: ${AWS_REGION:us-east-1}
+  s3:
+    bucket: ${S3_BUCKET_NAME:rapid-photo-uploads}
+  sqs:
+    queue-url: ${SQS_QUEUE_URL:}
+
+---
+# Local Development Profile
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/rapidphoto
+    username: rapidphoto
+    password: rapidphoto_dev
+
+management:
+  metrics:
+    export:
+      cloudwatch:
+        enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.rapidphoto: DEBUG
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5433/rapidphoto_test
+    username: test
+    password: test
+
+  flyway:
+    clean-disabled: false
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+management:
+  metrics:
+    export:
+      cloudwatch:
+        enabled: true
+
+logging:
+  level:
+    root: WARN
+    com.rapidphoto: INFO
