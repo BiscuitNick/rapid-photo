@@ -39,7 +39,7 @@ public class UploadJob {
     private String mimeType;
 
     @Builder.Default
-    private UploadJobStatus status = UploadJobStatus.INITIATED;
+    private String status = "INITIATED";  // Maps to upload_job_status ENUM
 
     private String etag;  // S3 ETag after upload
 
@@ -62,13 +62,16 @@ public class UploadJob {
                                     String fileName, Long fileSize, String mimeType,
                                     Instant expiresAt) {
         return UploadJob.builder()
+                .id(UUID.randomUUID())  // Generate ID for new upload job
                 .userId(userId)
                 .s3Key(s3Key)
                 .presignedUrl(presignedUrl)
                 .fileName(fileName)
                 .fileSize(fileSize)
                 .mimeType(mimeType)
+                .status("INITIATED")  // Explicitly set initial status
                 .expiresAt(expiresAt)
+                .createdAt(Instant.now())  // Set creation timestamp
                 .build();
     }
 
@@ -76,7 +79,7 @@ public class UploadJob {
      * Confirm upload with ETag.
      */
     public void confirm(String etag) {
-        this.status = UploadJobStatus.CONFIRMED;
+        this.status = "CONFIRMED";
         this.etag = etag;
         this.confirmedAt = Instant.now();
     }
@@ -85,8 +88,22 @@ public class UploadJob {
      * Mark upload as failed.
      */
     public void fail(String errorMessage) {
-        this.status = UploadJobStatus.FAILED;
+        this.status = "FAILED";
         this.errorMessage = errorMessage;
+    }
+
+    /**
+     * Get status as enum.
+     */
+    public UploadJobStatus getStatusEnum() {
+        return status != null ? UploadJobStatus.valueOf(status) : null;
+    }
+
+    /**
+     * Set status from enum.
+     */
+    public void setStatusEnum(UploadJobStatus status) {
+        this.status = status != null ? status.name() : null;
     }
 
     /**
@@ -100,6 +117,6 @@ public class UploadJob {
      * Check if upload job can be confirmed.
      */
     public boolean canBeConfirmed() {
-        return status == UploadJobStatus.UPLOADED && !isExpired();
+        return "UPLOADED".equals(status) && !isExpired();
     }
 }

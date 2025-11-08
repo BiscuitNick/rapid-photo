@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -74,4 +75,24 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
      * Delete photos by user ID (cascade handled by database).
      */
     Mono<Void> deleteByUserId(UUID userId);
+
+    /**
+     * Custom save method with explicit ENUM casting for status field.
+     * This is needed because R2DBC doesn't automatically cast String to PostgreSQL ENUM types.
+     */
+    @Query("INSERT INTO photos (id, user_id, upload_job_id, original_s3_key, status, file_name, file_size, mime_type, " +
+           "width, height, taken_at, camera_make, camera_model, gps_latitude, gps_longitude, created_at) " +
+           "VALUES (:id, :userId, :uploadJobId, :originalS3Key, :status::photo_status, :fileName, :fileSize, :mimeType, " +
+           ":width, :height, :takenAt, :cameraMake, :cameraModel, :gpsLatitude, :gpsLongitude, :createdAt)")
+    Mono<Void> saveWithEnumCast(UUID id, UUID userId, UUID uploadJobId, String originalS3Key, String status,
+                                String fileName, Long fileSize, String mimeType,
+                                Integer width, Integer height, Instant takenAt,
+                                String cameraMake, String cameraModel,
+                                BigDecimal gpsLatitude, BigDecimal gpsLongitude, Instant createdAt);
+
+    /**
+     * Custom update method with explicit ENUM casting for status field.
+     */
+    @Query("UPDATE photos SET status = :status::photo_status WHERE id = :id")
+    Mono<Void> updateStatusWithEnumCast(UUID id, String status);
 }

@@ -2,7 +2,7 @@
  * Upload queue hook with concurrency control and retry logic
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiService } from '../services/api';
 import type { UploadItem } from '../types/api';
 
@@ -34,6 +34,12 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
   const [isPaused, setIsPaused] = useState(false);
   const activeUploadsRef = useRef(0);
   const processingRef = useRef(false);
+  const queueRef = useRef<UploadItem[]>([]);
+
+  // Keep queueRef in sync with queue state
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
 
   // Update a single item in the queue
   const updateItem = useCallback(
@@ -115,18 +121,25 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
 
   // Process queue with concurrency control
   const processQueue = useCallback(async () => {
+    console.log('[Upload] processQueue called, isPaused:', isPaused, 'processing:', processingRef.current);
     if (processingRef.current || isPaused) return;
 
     processingRef.current = true;
 
     while (true) {
-      // Get next queued item
-      const nextItem = queue.find((item) => item.status === 'queued');
+      // Get current queue state from ref (always up to date)
+      const currentQueue = queueRef.current;
+      const nextItem = currentQueue.find((item) => item.status === 'queued');
+
+      console.log('[Upload] Current queue size:', currentQueue.length, 'Queued items:', currentQueue.filter(i => i.status === 'queued').length);
 
       // No more queued items
       if (!nextItem) {
+        console.log('[Upload] No more queued items');
         break;
       }
+
+      console.log('[Upload] Processing item:', nextItem.file.name);
 
       // Wait if at max concurrency
       if (activeUploadsRef.current >= MAX_CONCURRENT_UPLOADS) {
@@ -147,11 +160,21 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
     }
 
     processingRef.current = false;
-  }, [queue, isPaused, uploadFile]);
+  }, [isPaused, uploadFile]);
+
+  // Automatically process queue when items are added or status changes
+  useEffect(() => {
+    const hasQueuedItems = queue.some((item) => item.status === 'queued');
+    if (hasQueuedItems && !processingRef.current && !isPaused) {
+      console.log('[Upload] useEffect detected queued items, triggering processQueue');
+      processQueue();
+    }
+  }, [queue, isPaused, processQueue]);
 
   // Add files to queue
   const addFiles = useCallback(
     (files: File[]) => {
+      console.log('[Upload] Adding files:', files.length);
       const newItems: UploadItem[] = files.map((file) => ({
         id: `${Date.now()}-${Math.random()}`,
         file,
@@ -160,12 +183,12 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
         retryCount: 0,
       }));
 
-      setQueue((prev) => [...prev, ...newItems]);
-
-      // Trigger processing
-      setTimeout(() => processQueue(), 0);
+      setQueue((prev) => {
+        console.log('[Upload] Queue before:', prev.length, 'Queue after:', prev.length + newItems.length);
+        return [...prev, ...newItems];
+      });
     },
-    [processQueue]
+    []
   );
 
   // Remove file from queue
@@ -188,10 +211,8 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
             : item
         )
       );
-
-      setTimeout(() => processQueue(), 0);
     },
-    [processQueue]
+    []
   );
 
   // Retry all failed uploads
@@ -208,9 +229,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
           : item
       )
     );
-
-    setTimeout(() => processQueue(), 0);
-  }, [processQueue]);
+  }, []);
 
   // Pause all uploads
   const pauseAll = useCallback(() => {
@@ -232,9 +251,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
         item.status === 'paused' ? { ...item, status: 'queued' } : item
       )
     );
-
-    setTimeout(() => processQueue(), 0);
-  }, [processQueue]);
+  }, []);
 
   // Clear completed uploads
   const clearCompleted = useCallback(() => {

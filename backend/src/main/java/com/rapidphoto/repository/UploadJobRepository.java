@@ -48,4 +48,21 @@ public interface UploadJobRepository extends ReactiveCrudRepository<UploadJob, U
      * Delete upload jobs older than a certain date.
      */
     Mono<Void> deleteByCreatedAtBefore(Instant cutoffDate);
+
+    /**
+     * Custom save method with explicit ENUM casting for status field.
+     * This is needed because R2DBC doesn't automatically cast String to PostgreSQL ENUM types.
+     */
+    @Query("INSERT INTO upload_jobs (id, user_id, s3_key, presigned_url, file_name, file_size, mime_type, status, expires_at, created_at) " +
+           "VALUES (:id, :userId, :s3Key, :presignedUrl, :fileName, :fileSize, :mimeType, :status::upload_job_status, :expiresAt, :createdAt)")
+    Mono<Void> saveWithEnumCast(UUID id, UUID userId, String s3Key, String presignedUrl,
+                                String fileName, Long fileSize, String mimeType,
+                                String status, Instant expiresAt, Instant createdAt);
+
+    /**
+     * Custom update method with explicit ENUM casting for status field.
+     */
+    @Query("UPDATE upload_jobs SET status = :status::upload_job_status, etag = :etag, confirmed_at = :confirmedAt " +
+           "WHERE id = :id")
+    Mono<Void> updateStatusWithEnumCast(UUID id, String status, String etag, Instant confirmedAt);
 }

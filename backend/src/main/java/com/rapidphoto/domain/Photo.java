@@ -44,7 +44,7 @@ public class Photo {
     private Integer height;
 
     @Builder.Default
-    private PhotoStatus status = PhotoStatus.PENDING_PROCESSING;
+    private String status = "PENDING_PROCESSING";  // Maps to photo_status ENUM
 
     @CreatedDate
     private Instant createdAt;
@@ -71,12 +71,15 @@ public class Photo {
      */
     public static Photo fromUploadJob(UploadJob uploadJob) {
         return Photo.builder()
+                .id(UUID.randomUUID())  // Generate ID for new photo
                 .userId(uploadJob.getUserId())
                 .uploadJobId(uploadJob.getId())
                 .originalS3Key(uploadJob.getS3Key())
                 .fileName(uploadJob.getFileName())
                 .fileSize(uploadJob.getFileSize())
                 .mimeType(uploadJob.getMimeType())
+                .status("PENDING_PROCESSING")  // Explicitly set initial status
+                .createdAt(Instant.now())  // Set creation timestamp
                 .build();
     }
 
@@ -84,14 +87,14 @@ public class Photo {
      * Start processing the photo.
      */
     public void startProcessing() {
-        this.status = PhotoStatus.PROCESSING;
+        this.status = "PROCESSING";
     }
 
     /**
      * Mark photo as ready after successful processing.
      */
     public void markReady(Integer width, Integer height) {
-        this.status = PhotoStatus.READY;
+        this.status = "READY";
         this.width = width;
         this.height = height;
         this.processedAt = Instant.now();
@@ -101,8 +104,22 @@ public class Photo {
      * Mark photo as failed with error message.
      */
     public void markFailed(String errorMessage) {
-        this.status = PhotoStatus.FAILED;
+        this.status = "FAILED";
         this.errorMessage = errorMessage;
+    }
+
+    /**
+     * Get status as enum.
+     */
+    public PhotoStatus getStatusEnum() {
+        return status != null ? PhotoStatus.valueOf(status) : null;
+    }
+
+    /**
+     * Set status from enum.
+     */
+    public void setStatusEnum(PhotoStatus status) {
+        this.status = status != null ? status.name() : null;
     }
 
     /**
@@ -133,13 +150,13 @@ public class Photo {
      * Check if photo is ready for viewing.
      */
     public boolean isReady() {
-        return status == PhotoStatus.READY;
+        return "READY".equals(status);
     }
 
     /**
      * Check if photo processing failed.
      */
     public boolean hasFailed() {
-        return status == PhotoStatus.FAILED;
+        return "FAILED".equals(status);
     }
 }

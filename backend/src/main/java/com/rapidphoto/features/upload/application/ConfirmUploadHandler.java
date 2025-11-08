@@ -44,9 +44,31 @@ public class ConfirmUploadHandler {
                 .switchIfEmpty(Mono.error(new UploadJobNotFoundException(
                         "Upload job not found: " + command.uploadId())))
                 .flatMap(uploadJob -> validateAndConfirmUpload(uploadJob, command))
-                .flatMap(uploadJobRepository::save)
+                .flatMap(uploadJob -> uploadJobRepository.updateStatusWithEnumCast(
+                        uploadJob.getId(),
+                        uploadJob.getStatus(),
+                        uploadJob.getEtag(),
+                        uploadJob.getConfirmedAt()
+                ).thenReturn(uploadJob))
                 .flatMap(this::createPhoto)
-                .flatMap(photo -> photoRepository.save(photo)
+                .flatMap(photo -> photoRepository.saveWithEnumCast(
+                        photo.getId(),
+                        photo.getUserId(),
+                        photo.getUploadJobId(),
+                        photo.getOriginalS3Key(),
+                        photo.getStatus(),
+                        photo.getFileName(),
+                        photo.getFileSize(),
+                        photo.getMimeType(),
+                        photo.getWidth(),
+                        photo.getHeight(),
+                        photo.getTakenAt(),
+                        photo.getCameraMake(),
+                        photo.getCameraModel(),
+                        photo.getGpsLatitude(),
+                        photo.getGpsLongitude(),
+                        photo.getCreatedAt()
+                ).thenReturn(photo)
                         .flatMap(savedPhoto -> publishEvent(savedPhoto, uploadJobRepository.findById(command.uploadId()))
                                 .thenReturn(savedPhoto)))
                 .map(this::toResponse)
@@ -64,7 +86,7 @@ public class ConfirmUploadHandler {
         }
 
         // Check if already confirmed
-        if (uploadJob.getStatus() == UploadJobStatus.CONFIRMED) {
+        if ("CONFIRMED".equals(uploadJob.getStatus())) {
             log.warn("Upload job {} already confirmed", command.uploadId());
             return Mono.just(uploadJob);
         }
@@ -76,7 +98,7 @@ public class ConfirmUploadHandler {
         }
 
         // Update upload job with UPLOADED status first (will be CONFIRMED after photo creation)
-        uploadJob.setStatus(UploadJobStatus.UPLOADED);
+        uploadJob.setStatus("UPLOADED");
         uploadJob.setEtag(command.etag());
 
         return Mono.just(uploadJob);
@@ -92,8 +114,12 @@ public class ConfirmUploadHandler {
         return uploadJobMono.flatMap(uploadJob -> {
             // Mark upload job as confirmed now
             uploadJob.confirm(uploadJob.getEtag());
-            return uploadJobRepository.save(uploadJob)
-                    .then(Mono.defer(() -> {
+            return uploadJobRepository.updateStatusWithEnumCast(
+                    uploadJob.getId(),
+                    uploadJob.getStatus(),
+                    uploadJob.getEtag(),
+                    uploadJob.getConfirmedAt()
+            ).then(Mono.defer(() -> {
                         PhotoUploadConfirmedEvent event = new PhotoUploadConfirmedEvent(
                                 photo.getId(),
                                 uploadJob.getId(),
@@ -113,7 +139,7 @@ public class ConfirmUploadHandler {
         return ConfirmUploadResponse.builder()
                 .photoId(photo.getId())
                 .uploadId(photo.getUploadJobId())
-                .status(photo.getStatus().name())
+                .status(photo.getStatus())
                 .message("Upload confirmed successfully. Photo is pending processing.")
                 .build();
     }

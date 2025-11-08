@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
 import java.util.UUID;
 
 /**
@@ -28,7 +29,7 @@ public interface PhotoVersionRepository extends ReactiveCrudRepository<PhotoVers
     /**
      * Find all thumbnails for multiple photos.
      */
-    Flux<PhotoVersion> findByPhotoIdInAndVersionType(Iterable<UUID> photoIds, PhotoVersionType versionType);
+    Flux<PhotoVersion> findByPhotoIdInAndVersionType(Collection<UUID> photoIds, PhotoVersionType versionType);
 
     /**
      * Count versions for a photo.

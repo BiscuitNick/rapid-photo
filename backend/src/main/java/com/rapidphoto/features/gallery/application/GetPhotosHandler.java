@@ -84,7 +84,7 @@ public class GetPhotosHandler {
         // Get labels for all photos
         Mono<Map<UUID, List<String>>> labelsMono = Flux.fromIterable(photoIds)
                 .flatMap(photoId -> photoLabelRepository.findByPhotoId(photoId)
-                        .map(label -> Map.entry(photoId, label.getLabelName()))
+                        .map(label -> label.getLabelName())
                         .collectList()
                         .map(labelList -> Map.entry(photoId, labelList)))
                 .collectMap(Map.Entry::getKey, Map.Entry::getValue);

@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Editor directories
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Testing
+coverage
+
+# Amplify
+amplify_outputs.json
+.amplify
+ampx-*

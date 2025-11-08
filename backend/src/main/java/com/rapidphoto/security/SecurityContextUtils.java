@@ -19,9 +19,8 @@ public class SecurityContextUtils {
      * This is the unique identifier for the user from Cognito.
      */
     public static Mono<String> getCurrentCognitoUserId() {
-        return getAuthentication()
-                .map(Authentication::getPrincipal)
-                .cast(String.class);
+        return getCurrentJwt()
+                .map(jwt -> jwt.getClaimAsString("sub"));
     }
 
     /**

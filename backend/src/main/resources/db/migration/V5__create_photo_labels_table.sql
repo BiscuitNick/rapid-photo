@@ -1,6 +1,9 @@
 -- V5: Create photo_labels table
 -- Stores AI-detected labels from AWS Rekognition
 
+-- Create extension for trigram similarity search (must be first)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE TABLE IF NOT EXISTS photo_labels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     photo_id UUID NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
@@ -21,9 +24,6 @@ CREATE INDEX idx_photo_labels_label_confidence ON photo_labels(label_name, confi
 
 -- GIN index for full-text search on labels (if needed in future)
 CREATE INDEX idx_photo_labels_label_name_gin ON photo_labels USING gin(label_name gin_trgm_ops);
-
--- Create extension for trigram similarity search
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Comments
 COMMENT ON TABLE photo_labels IS 'AI-detected labels from AWS Rekognition';
