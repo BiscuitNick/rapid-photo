@@ -4,6 +4,7 @@ import com.rapidphoto.domain.Photo;
 import com.rapidphoto.domain.PhotoStatus;
 import com.rapidphoto.domain.UploadJob;
 import com.rapidphoto.domain.UploadJobStatus;
+import com.rapidphoto.domain.User;
 import com.rapidphoto.features.upload.api.dto.*;
 import com.rapidphoto.repository.PhotoRepository;
 import com.rapidphoto.repository.UploadJobRepository;
@@ -24,6 +25,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,9 +80,18 @@ class UploadIntegrationTest {
         // Clean up database
         uploadJobRepository.deleteAll().block();
         photoRepository.deleteAll().block();
+        userRepository.deleteAll().block();
 
         // Create test user
         testUserId = UUID.randomUUID();
+        User user = User.builder()
+                .id(testUserId)
+                .cognitoUserId(testUserId.toString())
+                .email("test@example.com")
+                .name("Test User")
+                .createdAt(Instant.now())
+                .build();
+        userRepository.insert(user).block();
     }
 
     @Test
@@ -173,13 +184,13 @@ class UploadIntegrationTest {
         // Verify upload job was updated
         UploadJob updatedJob = uploadJobRepository.findById(uploadJob.getId()).block();
         assertThat(updatedJob).isNotNull();
-        assertThat(updatedJob.getStatus()).isEqualTo(UploadJobStatus.CONFIRMED);
+        assertThat(updatedJob.getStatus()).isEqualTo(UploadJobStatus.CONFIRMED.name());
         assertThat(updatedJob.getEtag()).isEqualTo("test-etag-123");
 
         // Verify photo was created
         Photo photo = photoRepository.findByUploadJobId(uploadJob.getId()).block();
         assertThat(photo).isNotNull();
-        assertThat(photo.getStatus()).isEqualTo(PhotoStatus.PENDING_PROCESSING);
+        assertThat(photo.getStatus()).isEqualTo(PhotoStatus.PENDING_PROCESSING.name());
         assertThat(photo.getUserId()).isEqualTo(testUserId);
         assertThat(photo.getOriginalS3Key()).isEqualTo(uploadJob.getS3Key());
     }
@@ -209,12 +220,12 @@ class UploadIntegrationTest {
         UploadJob job2 = createTestUploadJob(testUserId);
 
         // Confirm one upload
-        job2.setStatus(UploadJobStatus.CONFIRMED);
+        job2.setStatus(UploadJobStatus.CONFIRMED.name());
         job2.setEtag("etag-2");
         uploadJobRepository.save(job2).block();
 
         Photo photo = Photo.fromUploadJob(job2);
-        photoRepository.save(photo).block();
+        photoRepository.saveWithEnumCast(photo).block();
 
         // When & Then
         webTestClient.get()
@@ -269,7 +280,7 @@ class UploadIntegrationTest {
                 .fileName("test-image.jpg")
                 .fileSize(1024L * 1024L)
                 .mimeType("image/jpeg")
-                .status(UploadJobStatus.INITIATED)
+                .status(UploadJobStatus.INITIATED.name())
                 .expiresAt(java.time.Instant.now().plusSeconds(900))
                 .build();
 

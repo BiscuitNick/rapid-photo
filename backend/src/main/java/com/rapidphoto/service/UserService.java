@@ -43,7 +43,7 @@ public class UserService {
                         Mono.defer(() -> {
                             log.info("Creating new user for Cognito ID: {}", cognitoUserId);
                             User newUser = User.fromCognito(cognitoUserId, email, name);
-                            return userRepository.save(newUser);
+                            return userRepository.insert(newUser);
                         })
                 )
                 .doOnSuccess(user -> log.debug("User found/created with ID: {}", user.getId()))

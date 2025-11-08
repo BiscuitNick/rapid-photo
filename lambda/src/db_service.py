@@ -11,7 +11,7 @@ import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 
-from .config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+from config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ def update_photo_metadata(
     thumbnail_key: str,
     metadata: Dict,
     tags: List[str],
-    status: str = 'COMPLETED'
+    status: str = 'READY'
 ) -> None:
     """
     Update photo record with processing results.
@@ -118,7 +118,7 @@ def update_photo_metadata(
         thumbnail_key: S3 key for the thumbnail
         metadata: Image metadata dictionary
         tags: List of AI-detected tags
-        status: Photo status (default: COMPLETED)
+        status: Photo status (default: READY)
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -127,23 +127,15 @@ def update_photo_metadata(
                 """
                 UPDATE photos
                 SET status = %s,
-                    thumbnail_s3_key = %s,
                     width = %s,
                     height = %s,
-                    size_bytes = %s,
-                    format = %s,
-                    tags = %s,
                     processed_at = NOW()
                 WHERE id = %s
                 """,
                 (
                     status,
-                    thumbnail_key,
                     metadata.get('width'),
                     metadata.get('height'),
-                    metadata.get('size_bytes'),
-                    metadata.get('format'),
-                    json.dumps(tags),
                     photo_id
                 )
             )
@@ -157,29 +149,115 @@ def update_photo_metadata(
 
 def save_photo_versions(
     photo_id: str,
-    versions: Dict[int, str]
+    versions: Dict[int, str],
+    thumbnail_key: str = None
 ) -> None:
     """
-    Save WebP renditions to photo_versions table.
+    Save WebP renditions and thumbnail to photo_versions table.
 
     Args:
         photo_id: UUID of the photo
-        versions: Dictionary mapping width to S3 key
+        versions: Dictionary mapping width to S3 key (for WebP versions)
+        thumbnail_key: Optional S3 key for thumbnail
+    """
+    import boto3
+    from .config import S3_BUCKET, AWS_REGION
+
+    s3_client = boto3.client('s3', region_name=AWS_REGION)
+
+    # Map widths to version type enum values
+    width_to_version_type = {
+        640: 'WEBP_640',
+        1280: 'WEBP_1280',
+        1920: 'WEBP_1920',
+        2560: 'WEBP_2560'
+    }
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            # Save thumbnail if provided
+            if thumbnail_key:
+                try:
+                    thumb_meta = s3_client.head_object(Bucket=S3_BUCKET, Key=thumbnail_key)
+                    # Thumbnail is 300x300
+                    cur.execute(
+                        """
+                        INSERT INTO photo_versions (photo_id, version_type, s3_key, file_size, width, height, mime_type)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (photo_id, version_type)
+                        DO UPDATE SET s3_key = EXCLUDED.s3_key, file_size = EXCLUDED.file_size, created_at = NOW()
+                        """,
+                        (photo_id, 'THUMBNAIL', thumbnail_key, thumb_meta['ContentLength'], 300, 300, 'image/jpeg')
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to save thumbnail version: {e}")
+
+            # Save WebP versions
+            for width, s3_key in versions.items():
+                version_type = width_to_version_type.get(width)
+                if not version_type:
+                    logger.warning(f"Unknown width {width}, skipping")
+                    continue
+
+                try:
+                    # Get file size from S3
+                    obj_meta = s3_client.head_object(Bucket=S3_BUCKET, Key=s3_key)
+                    file_size = obj_meta['ContentLength']
+
+                    # Calculate height from original aspect ratio
+                    # Get original photo dimensions from photos table
+                    cur.execute("SELECT width, height FROM photos WHERE id = %s", (photo_id,))
+                    result = cur.fetchone()
+                    if result and result[0] and result[1]:
+                        orig_width, orig_height = result[0], result[1]
+                        aspect_ratio = orig_height / orig_width
+                        calc_height = int(width * aspect_ratio)
+                    else:
+                        # Fallback: assume square
+                        calc_height = width
+
+                    cur.execute(
+                        """
+                        INSERT INTO photo_versions (photo_id, version_type, s3_key, file_size, width, height, mime_type)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (photo_id, version_type)
+                        DO UPDATE SET s3_key = EXCLUDED.s3_key, file_size = EXCLUDED.file_size, created_at = NOW()
+                        """,
+                        (photo_id, version_type, s3_key, file_size, width, calc_height, 'image/webp')
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to save version {version_type}: {e}")
+
+            logger.info(f"Saved {len(versions)} renditions for photo {photo_id}")
+
+
+def save_photo_labels(photo_id: str, labels: List[str], confidences: Dict[str, float]) -> None:
+    """
+    Save AI-detected labels to photo_labels table.
+
+    Args:
+        photo_id: UUID of the photo
+        labels: List of label names
+        confidences: Dictionary mapping label name to confidence score
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            for width, s3_key in versions.items():
-                cur.execute(
-                    """
-                    INSERT INTO photo_versions (photo_id, version_type, width, s3_key)
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (photo_id, version_type, width)
-                    DO UPDATE SET s3_key = EXCLUDED.s3_key, created_at = NOW()
-                    """,
-                    (photo_id, 'WEBP', width, s3_key)
-                )
+            for label in labels:
+                confidence = confidences.get(label, 0.0)
+                try:
+                    cur.execute(
+                        """
+                        INSERT INTO photo_labels (photo_id, label_name, confidence)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (photo_id, label_name)
+                        DO UPDATE SET confidence = EXCLUDED.confidence, created_at = NOW()
+                        """,
+                        (photo_id, label, confidence)
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to save label {label}: {e}")
 
-            logger.info(f"Saved {len(versions)} renditions for photo {photo_id}")
+            logger.info(f"Saved {len(labels)} labels for photo {photo_id}")
 
 
 def mark_photo_failed(photo_id: str, error_message: str) -> None:

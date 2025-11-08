@@ -14,18 +14,18 @@ import logging
 import os
 from typing import Any, Dict, List
 
-from .config import S3_BUCKET
-from .db_service import (
+from config import S3_BUCKET
+from db_service import (
     check_photo_status,
     mark_photo_failed,
     save_photo_versions,
     update_photo_metadata,
 )
-from .image_processor import create_thumbnail, get_image_metadata
-from .metrics import StructuredLogger, increment_counter, timed_operation
-from .rekognition_service import detect_labels, extract_tags
-from .s3_service import download_from_s3, generate_processed_keys, upload_to_s3
-from .webp_converter import create_webp_renditions
+from image_processor import create_thumbnail, get_image_metadata
+from metrics import StructuredLogger, increment_counter, timed_operation
+from rekognition_service import detect_labels, extract_tags
+from s3_service import download_from_s3, generate_processed_keys, upload_to_s3
+from webp_converter import create_webp_renditions
 
 # Configure structured logging
 logger = logging.getLogger()
@@ -55,7 +55,7 @@ def process_single_image(
     with timed_operation('image_processing', dimensions={'user_id': user_id}):
         # Step 1: Check idempotency - skip if already processed
         current_status = check_photo_status(photo_id)
-        if current_status in ('COMPLETED', 'PROCESSING'):
+        if current_status in ('READY', 'PROCESSING'):
             structured_logger.info(
                 "Photo already processed or in progress, skipping",
                 photo_id=photo_id,
@@ -119,11 +119,16 @@ def process_single_image(
             thumbnail_key=thumbnail_key,
             metadata=metadata,
             tags=tags,
-            status='COMPLETED'
+            status='READY'
         )
 
-        # Save photo versions
-        save_photo_versions(photo_id=photo_id, versions=version_keys)
+        # Save photo versions (including thumbnail)
+        save_photo_versions(photo_id=photo_id, versions=version_keys, thumbnail_key=thumbnail_key)
+
+        # Save AI labels
+        from db_service import save_photo_labels
+        label_confidences = {label['name']: label['confidence'] for label in labels}
+        save_photo_labels(photo_id=photo_id, labels=tags, confidences=label_confidences)
 
         structured_logger.info(
             "Image processing completed",
@@ -143,6 +148,58 @@ def process_single_image(
         }
 
 
+def parse_event_data(record: Dict[str, Any]) -> tuple[str, str, str]:
+    """
+    Parse event data from either S3 events or custom photo events.
+
+    Supports two event formats:
+    1. S3 Event: {"Records": [{"s3": {"object": {"key": "..."}}}]}
+    2. Custom Event: {"photoId": "...", "s3Key": "...", "userId": "..."}
+
+    Returns:
+        tuple: (photo_id, s3_key, user_id)
+    """
+    message_body = json.loads(record['body'])
+
+    # Check if it's an S3 event
+    if 'Records' in message_body and message_body.get('Records'):
+        s3_record = message_body['Records'][0]
+        if s3_record.get('eventSource') == 'aws:s3':
+            # S3 Event format
+            s3_key = s3_record['s3']['object']['key']
+            structured_logger.info("Processing S3 event", s3_key=s3_key)
+
+            # Look up photo by S3 key in database
+            from db_service import get_db_connection
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT id, user_id FROM photos WHERE original_s3_key = %s",
+                        (s3_key,)
+                    )
+                    result = cur.fetchone()
+                    if not result:
+                        raise ValueError(f"Photo not found for S3 key: {s3_key}")
+
+                    photo_id = str(result[0])
+                    user_id = str(result[1])
+
+            return photo_id, s3_key, user_id
+
+    # Custom event format (from backend)
+    photo_id = message_body.get('photoId')
+    s3_key = message_body.get('s3Key')
+    user_id = message_body.get('userId')
+
+    if not all([photo_id, s3_key, user_id]):
+        raise ValueError(
+            f"Missing required fields. photoId={photo_id}, "
+            f"s3Key={s3_key}, userId={user_id}"
+        )
+
+    return photo_id, s3_key, user_id
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda entry point for processing SQS messages containing S3 upload events.
@@ -154,15 +211,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Returns:
         Dict with statusCode and processing results
 
-    Example event structure:
-    {
-        "Records": [
-            {
-                "messageId": "...",
-                "body": "{\"photoId\": \"uuid\", \"s3Key\": \"originals/user123/photo.jpg\", \"userId\": \"user123\"}"
-            }
-        ]
-    }
+    Supports two event formats:
+    1. S3 Events (from S3 bucket notifications)
+    2. Custom Photo Events (from backend API)
     """
     records_count = len(event.get('Records', []))
     structured_logger.info("Lambda invocation started", records_count=records_count)
@@ -175,20 +226,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             message_id = record.get('messageId', 'unknown')
 
             try:
-                # Parse SQS message body
-                message_body = json.loads(record['body'])
                 structured_logger.info("Processing message", message_id=message_id)
 
-                # Extract required fields
-                photo_id = message_body.get('photoId')
-                s3_key = message_body.get('s3Key')
-                user_id = message_body.get('userId')
-
-                if not all([photo_id, s3_key, user_id]):
-                    raise ValueError(
-                        f"Missing required fields. photoId={photo_id}, "
-                        f"s3Key={s3_key}, userId={user_id}"
-                    )
+                # Parse event data (handles both S3 and custom events)
+                photo_id, s3_key, user_id = parse_event_data(record)
 
                 # Process the image
                 result = process_single_image(photo_id, s3_key, user_id)

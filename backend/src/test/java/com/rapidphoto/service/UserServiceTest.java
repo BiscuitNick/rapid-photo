@@ -96,7 +96,7 @@ class UserServiceTest {
         // Given
         String cognitoUserId = UUID.randomUUID().toString();
         User existingUser = User.fromCognito(cognitoUserId, "test@example.com", "Test User");
-        userRepository.save(existingUser).block();
+        userRepository.insert(existingUser).block();
 
         // When
         User result = userService.findOrCreateUser(cognitoUserId, "test@example.com", "Test User").block();
@@ -111,7 +111,7 @@ class UserServiceTest {
     void shouldGetUserById() {
         // Given
         User user = User.fromCognito(UUID.randomUUID().toString(), "test@example.com", "Test User");
-        User savedUser = userRepository.save(user).block();
+        User savedUser = userRepository.insert(user).block();
 
         // When
         User result = userService.getUserById(savedUser.getId()).block();
@@ -126,7 +126,7 @@ class UserServiceTest {
         // Given
         String cognitoUserId = UUID.randomUUID().toString();
         User user = User.fromCognito(cognitoUserId, "test@example.com", "Test User");
-        userRepository.save(user).block();
+        userRepository.insert(user).block();
 
         // When
         User result = userService.getUserByCognitoId(cognitoUserId).block();
@@ -140,7 +140,7 @@ class UserServiceTest {
     void shouldUpdateStorageUsage() {
         // Given
         User user = User.fromCognito(UUID.randomUUID().toString(), "test@example.com", "Test User");
-        User savedUser = userRepository.save(user).block();
+        User savedUser = userRepository.insert(user).block();
         long deltaBytes = 1024L * 1024L * 100L; // 100MB
 
         // When
@@ -156,7 +156,7 @@ class UserServiceTest {
         // Given
         String cognitoUserId = UUID.randomUUID().toString();
         User user = User.fromCognito(cognitoUserId, "test@example.com", "Test User");
-        userRepository.save(user).block();
+        userRepository.insert(user).block();
 
         // When
         User result = userService.recordLogin(cognitoUserId).block();
@@ -170,7 +170,7 @@ class UserServiceTest {
     void shouldCheckAvailableStorage() {
         // Given
         User user = User.fromCognito(UUID.randomUUID().toString(), "test@example.com", "Test User");
-        User savedUser = userRepository.save(user).block();
+        User savedUser = userRepository.insert(user).block();
         long requiredBytes = 1024L * 1024L * 1024L; // 1GB
 
         // When
@@ -185,7 +185,7 @@ class UserServiceTest {
         // Given
         User user = User.fromCognito(UUID.randomUUID().toString(), "test@example.com", "Test User");
         user.updateStorageUsage(1024L * 1024L * 1024L * 9L); // Use 9GB
-        User savedUser = userRepository.save(user).block();
+        User savedUser = userRepository.insert(user).block();
         long requiredBytes = 1024L * 1024L * 1024L * 2L; // Need 2GB
 
         // When

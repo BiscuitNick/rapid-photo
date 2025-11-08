@@ -77,7 +77,7 @@ class PhotoRepositoryTest {
                 .email("test@example.com")
                 .name("Test User")
                 .build();
-        testUser = userRepository.save(testUser).block();
+        testUser = userRepository.insert(testUser).block();
 
         // Create test upload job
         testUploadJob = UploadJob.builder()
@@ -88,7 +88,7 @@ class PhotoRepositoryTest {
                 .fileName("test-photo.jpg")
                 .fileSize(1024L * 1024L)
                 .mimeType("image/jpeg")
-                .status(UploadJobStatus.CONFIRMED)
+                .status(UploadJobStatus.CONFIRMED.name())
                 .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
         testUploadJob = uploadJobRepository.save(testUploadJob).block();
@@ -105,15 +105,15 @@ class PhotoRepositoryTest {
                 .fileName("test-photo.jpg")
                 .fileSize(1024L * 1024L)
                 .mimeType("image/jpeg")
-                .status(PhotoStatus.PENDING_PROCESSING)
+                .status(PhotoStatus.PENDING_PROCESSING.name())
                 .build();
 
         // When & Then
-        StepVerifier.create(photoRepository.save(photo))
+        StepVerifier.create(photoRepository.saveWithEnumCast(photo))
                 .assertNext(saved -> {
                     assertThat(saved.getId()).isNotNull();
                     assertThat(saved.getUserId()).isEqualTo(testUser.getId());
-                    assertThat(saved.getStatus()).isEqualTo(PhotoStatus.PENDING_PROCESSING);
+                    assertThat(saved.getStatus()).isEqualTo(PhotoStatus.PENDING_PROCESSING.name());
                 })
                 .verifyComplete();
     }
@@ -220,7 +220,7 @@ class PhotoRepositoryTest {
                 new BigDecimal("37.7749"),
                 new BigDecimal("-122.4194")
         );
-        photoRepository.save(photoWithGps).block();
+        photoRepository.saveWithEnumCast(photoWithGps).block();
 
         Photo photoWithoutGps = createAndSavePhoto("no-gps.jpg", PhotoStatus.READY);
 
@@ -240,15 +240,15 @@ class PhotoRepositoryTest {
         Instant now = Instant.now();
         Photo photo1 = createAndSavePhoto("photo1.jpg", PhotoStatus.READY);
         photo1.updateExifMetadata(now.minus(10, ChronoUnit.DAYS), "Canon", "EOS R5");
-        photoRepository.save(photo1).block();
+        photoRepository.saveWithEnumCast(photo1).block();
 
         Photo photo2 = createAndSavePhoto("photo2.jpg", PhotoStatus.READY);
         photo2.updateExifMetadata(now.minus(5, ChronoUnit.DAYS), "Sony", "A7III");
-        photoRepository.save(photo2).block();
+        photoRepository.saveWithEnumCast(photo2).block();
 
         Photo photo3 = createAndSavePhoto("photo3.jpg", PhotoStatus.READY);
         photo3.updateExifMetadata(now.minus(1, ChronoUnit.DAYS), "Nikon", "Z6");
-        photoRepository.save(photo3).block();
+        photoRepository.saveWithEnumCast(photo3).block();
 
         // When & Then - Find photos from last 7 days
         Instant startDate = now.minus(7, ChronoUnit.DAYS);
@@ -267,12 +267,12 @@ class PhotoRepositoryTest {
 
         // When
         photo.markReady(1920, 1080);
-        Photo updated = photoRepository.save(photo).block();
+        Photo updated = photoRepository.saveWithEnumCast(photo).block();
 
         // Then
         StepVerifier.create(photoRepository.findById(photo.getId()))
                 .assertNext(found -> {
-                    assertThat(found.getStatus()).isEqualTo(PhotoStatus.READY);
+                    assertThat(found.getStatus()).isEqualTo(PhotoStatus.READY.name());
                     assertThat(found.getWidth()).isEqualTo(1920);
                     assertThat(found.getHeight()).isEqualTo(1080);
                     assertThat(found.getProcessedAt()).isNotNull();
@@ -304,8 +304,8 @@ class PhotoRepositoryTest {
                 .fileName(fileName)
                 .fileSize(1024L * 1024L)
                 .mimeType("image/jpeg")
-                .status(status)
+                .status(status.name())
                 .build();
-        return photoRepository.save(photo).block();
+        return photoRepository.saveWithEnumCast(photo).block();
     }
 }

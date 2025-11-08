@@ -1,6 +1,7 @@
 package com.rapidphoto.features.gallery;
 
 import com.rapidphoto.domain.*;
+import com.rapidphoto.domain.User;
 import com.rapidphoto.features.gallery.api.dto.PagedPhotosResponse;
 import com.rapidphoto.features.gallery.api.dto.PhotoResponse;
 import com.rapidphoto.repository.*;
@@ -79,9 +80,18 @@ class GalleryIntegrationTest {
         photoLabelRepository.deleteAll().block();
         photoVersionRepository.deleteAll().block();
         photoRepository.deleteAll().block();
+        userRepository.deleteAll().block();
 
-        // Create test user ID
+        // Create test user
         testUserId = UUID.randomUUID();
+        User user = User.builder()
+                .id(testUserId)
+                .cognitoUserId(testUserId.toString())
+                .email("test@example.com")
+                .name("Test User")
+                .createdAt(Instant.now())
+                .build();
+        userRepository.insert(user).block();
 
         // Create test photo
         testPhoto = createTestPhoto(testUserId);
@@ -109,7 +119,7 @@ class GalleryIntegrationTest {
                     var photoItem = response.getContent().get(0);
                     assertThat(photoItem.getId()).isEqualTo(testPhoto.getId());
                     assertThat(photoItem.getFileName()).isEqualTo(testPhoto.getFileName());
-                    assertThat(photoItem.getStatus()).isEqualTo(testPhoto.getStatus());
+                    assertThat(photoItem.getStatus()).isEqualTo(testPhoto.getStatusEnum());
                 });
     }
 
@@ -130,7 +140,7 @@ class GalleryIntegrationTest {
                 .value(response -> {
                     assertThat(response.getId()).isEqualTo(testPhoto.getId());
                     assertThat(response.getFileName()).isEqualTo(testPhoto.getFileName());
-                    assertThat(response.getStatus()).isEqualTo(testPhoto.getStatus());
+                    assertThat(response.getStatus()).isEqualTo(testPhoto.getStatusEnum());
                     assertThat(response.getWidth()).isEqualTo(testPhoto.getWidth());
                     assertThat(response.getHeight()).isEqualTo(testPhoto.getHeight());
                     assertThat(response.getVersions()).hasSize(1);
@@ -302,6 +312,7 @@ class GalleryIntegrationTest {
 
     private Photo createTestPhoto(UUID userId) {
         Photo photo = Photo.builder()
+                .id(UUID.randomUUID())
                 .userId(userId)
                 .uploadJobId(UUID.randomUUID())
                 .originalS3Key("originals/" + userId + "/" + UUID.randomUUID())
@@ -310,12 +321,12 @@ class GalleryIntegrationTest {
                 .mimeType("image/jpeg")
                 .width(1920)
                 .height(1080)
-                .status(PhotoStatus.READY)
+                .status(PhotoStatus.READY.name())
                 .createdAt(Instant.now())
                 .processedAt(Instant.now())
                 .build();
 
-        return photoRepository.save(photo).block();
+        return photoRepository.saveWithEnumCast(photo).block();
     }
 
     private PhotoVersion createTestVersion(UUID photoId, PhotoVersionType versionType) {

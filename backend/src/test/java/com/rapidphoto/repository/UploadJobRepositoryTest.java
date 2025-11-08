@@ -66,7 +66,7 @@ class UploadJobRepositoryTest {
                 .email("test@example.com")
                 .name("Test User")
                 .build();
-        testUser = userRepository.save(testUser).block();
+        testUser = userRepository.insert(testUser).block();
     }
 
     @Test
@@ -88,7 +88,7 @@ class UploadJobRepositoryTest {
                 .assertNext(saved -> {
                     assertThat(saved.getId()).isNotNull();
                     assertThat(saved.getUserId()).isEqualTo(testUser.getId());
-                    assertThat(saved.getStatus()).isEqualTo(UploadJobStatus.INITIATED);
+                    assertThat(saved.getStatus()).isEqualTo(UploadJobStatus.INITIATED.name());
                     assertThat(saved.getExpiresAt()).isEqualTo(expiresAt);
                 })
                 .verifyComplete();
@@ -195,7 +195,7 @@ class UploadJobRepositoryTest {
         // Then
         StepVerifier.create(uploadJobRepository.findById(uploadJob.getId()))
                 .assertNext(found -> {
-                    assertThat(found.getStatus()).isEqualTo(UploadJobStatus.CONFIRMED);
+                    assertThat(found.getStatus()).isEqualTo(UploadJobStatus.CONFIRMED.name());
                     assertThat(found.getEtag()).isEqualTo("test-etag-123");
                     assertThat(found.getConfirmedAt()).isNotNull();
                 })
@@ -214,7 +214,7 @@ class UploadJobRepositoryTest {
         // Then
         StepVerifier.create(uploadJobRepository.findById(uploadJob.getId()))
                 .assertNext(found -> {
-                    assertThat(found.getStatus()).isEqualTo(UploadJobStatus.FAILED);
+                    assertThat(found.getStatus()).isEqualTo(UploadJobStatus.FAILED.name());
                     assertThat(found.getErrorMessage()).isEqualTo("Upload timeout");
                 })
                 .verifyComplete();
@@ -277,7 +277,7 @@ class UploadJobRepositoryTest {
                 .fileName(fileName)
                 .fileSize(1024L * 1024L)
                 .mimeType("image/jpeg")
-                .status(status)
+                .status(status.name())
                 .expiresAt(expiresAt)
                 .build();
         return uploadJob;

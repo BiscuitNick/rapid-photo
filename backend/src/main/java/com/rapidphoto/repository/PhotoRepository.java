@@ -81,14 +81,50 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
      * This is needed because R2DBC doesn't automatically cast String to PostgreSQL ENUM types.
      */
     @Query("INSERT INTO photos (id, user_id, upload_job_id, original_s3_key, status, file_name, file_size, mime_type, " +
-           "width, height, taken_at, camera_make, camera_model, gps_latitude, gps_longitude, created_at) " +
+           "width, height, taken_at, camera_make, camera_model, gps_latitude, gps_longitude, created_at, updated_at, processed_at, error_message) " +
            "VALUES (:id, :userId, :uploadJobId, :originalS3Key, :status::photo_status, :fileName, :fileSize, :mimeType, " +
-           ":width, :height, :takenAt, :cameraMake, :cameraModel, :gpsLatitude, :gpsLongitude, :createdAt)")
+           ":width, :height, :takenAt, :cameraMake, :cameraModel, :gpsLatitude, :gpsLongitude, :createdAt, :updatedAt, :processedAt, :errorMessage)")
     Mono<Void> saveWithEnumCast(UUID id, UUID userId, UUID uploadJobId, String originalS3Key, String status,
                                 String fileName, Long fileSize, String mimeType,
                                 Integer width, Integer height, Instant takenAt,
                                 String cameraMake, String cameraModel,
-                                BigDecimal gpsLatitude, BigDecimal gpsLongitude, Instant createdAt);
+                                BigDecimal gpsLatitude, BigDecimal gpsLongitude, Instant createdAt,
+                                Instant updatedAt, Instant processedAt, String errorMessage);
+
+    /**
+     * Convenience method to persist a Photo aggregate with enum casting.
+     */
+    default Mono<Photo> saveWithEnumCast(Photo photo) {
+        UUID id = photo.getId() != null ? photo.getId() : UUID.randomUUID();
+        Instant createdAt = photo.getCreatedAt() != null ? photo.getCreatedAt() : Instant.now();
+        Instant updatedAt = photo.getUpdatedAt() != null ? photo.getUpdatedAt() : createdAt;
+
+        photo.setId(id);
+        photo.setCreatedAt(createdAt);
+        photo.setUpdatedAt(updatedAt);
+
+        return saveWithEnumCast(
+                id,
+                photo.getUserId(),
+                photo.getUploadJobId(),
+                photo.getOriginalS3Key(),
+                photo.getStatus(),
+                photo.getFileName(),
+                photo.getFileSize(),
+                photo.getMimeType(),
+                photo.getWidth(),
+                photo.getHeight(),
+                photo.getTakenAt(),
+                photo.getCameraMake(),
+                photo.getCameraModel(),
+                photo.getGpsLatitude(),
+                photo.getGpsLongitude(),
+                createdAt,
+                updatedAt,
+                photo.getProcessedAt(),
+                photo.getErrorMessage()
+        ).thenReturn(photo);
+    }
 
     /**
      * Custom update method with explicit ENUM casting for status field.

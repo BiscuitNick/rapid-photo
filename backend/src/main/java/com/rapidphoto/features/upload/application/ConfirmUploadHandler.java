@@ -51,24 +51,7 @@ public class ConfirmUploadHandler {
                         uploadJob.getConfirmedAt()
                 ).thenReturn(uploadJob))
                 .flatMap(this::createPhoto)
-                .flatMap(photo -> photoRepository.saveWithEnumCast(
-                        photo.getId(),
-                        photo.getUserId(),
-                        photo.getUploadJobId(),
-                        photo.getOriginalS3Key(),
-                        photo.getStatus(),
-                        photo.getFileName(),
-                        photo.getFileSize(),
-                        photo.getMimeType(),
-                        photo.getWidth(),
-                        photo.getHeight(),
-                        photo.getTakenAt(),
-                        photo.getCameraMake(),
-                        photo.getCameraModel(),
-                        photo.getGpsLatitude(),
-                        photo.getGpsLongitude(),
-                        photo.getCreatedAt()
-                ).thenReturn(photo)
+                .flatMap(photo -> photoRepository.saveWithEnumCast(photo)
                         .flatMap(savedPhoto -> publishEvent(savedPhoto, uploadJobRepository.findById(command.uploadId()))
                                 .thenReturn(savedPhoto)))
                 .map(this::toResponse)

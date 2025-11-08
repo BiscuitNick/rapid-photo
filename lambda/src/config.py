@@ -19,7 +19,7 @@ DB_PASSWORD = os.getenv('DB_PASSWORD', '')
 # Image Processing Configuration
 THUMBNAIL_SIZE = (300, 300)
 WEBP_QUALITY = 80
-WEBP_WIDTHS: List[int] = [640, 1024, 1920, 2560]
+WEBP_WIDTHS: List[int] = [640, 1280, 1920, 2560]
 
 # Rekognition Configuration
 REKOGNITION_MIN_CONFIDENCE = 80.0

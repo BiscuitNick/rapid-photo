@@ -62,7 +62,7 @@ class UserRepositoryTest {
                 .build();
 
         // When & Then
-        StepVerifier.create(userRepository.save(user))
+        StepVerifier.create(userRepository.insert(user))
                 .assertNext(saved -> {
                     assertThat(saved.getId()).isNotNull();
                     assertThat(saved.getCognitoUserId()).isEqualTo("cognito-123");
@@ -121,15 +121,16 @@ class UserRepositoryTest {
     @Test
     void shouldCreateUserFromCognito() {
         // Given
-        User user = User.fromCognito("cognito-456", "user@example.com", "New User");
+        String cognitoUserId = UUID.randomUUID().toString();
+        User user = User.fromCognito(cognitoUserId, "user@example.com", "New User");
 
         // When
-        User saved = userRepository.save(user).block();
+        User saved = userRepository.insert(user).block();
 
         // Then
         StepVerifier.create(userRepository.findById(saved.getId()))
                 .assertNext(found -> {
-                    assertThat(found.getCognitoUserId()).isEqualTo("cognito-456");
+                    assertThat(found.getCognitoUserId()).isEqualTo(cognitoUserId);
                     assertThat(found.getEmail()).isEqualTo("user@example.com");
                     assertThat(found.getName()).isEqualTo("New User");
                     assertThat(found.getLastLoginAt()).isNotNull();
@@ -228,6 +229,6 @@ class UserRepositoryTest {
                 .email(email)
                 .name("Test User")
                 .build();
-        return userRepository.save(user).block();
+        return userRepository.insert(user).block();
     }
 }

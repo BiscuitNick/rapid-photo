@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.tasks.run.BootRun
+
 plugins {
     java
     id("org.springframework.boot") version "3.3.5"
@@ -65,9 +67,29 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("com.nimbusds:nimbus-jose-jwt:9.37.3")
+    testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.withType<BootRun> {
+    val envFile = project.file(".env")
+
+    if (envFile.exists()) {
+        envFile.readLines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() && !it.startsWith("#") }
+            .forEach { line ->
+                val delimiterIndex = line.indexOf("=")
+                if (delimiterIndex > 0) {
+                    val key = line.substring(0, delimiterIndex).trim()
+                    val rawValue = line.substring(delimiterIndex + 1).trim()
+                    val value = rawValue.removePrefix("\"").removeSuffix("\"")
+                    environment(key, value)
+                }
+            }
+    }
 }

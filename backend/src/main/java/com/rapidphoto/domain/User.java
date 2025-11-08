@@ -53,7 +53,10 @@ public class User {
      * Factory method to create a new user from Cognito JWT claims.
      */
     public static User fromCognito(String cognitoUserId, String email, String name) {
+        UUID userId = UUID.fromString(cognitoUserId);
+
         return User.builder()
+                .id(userId)
                 .cognitoUserId(cognitoUserId)
                 .email(email)
                 .name(name)
