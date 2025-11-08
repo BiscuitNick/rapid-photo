@@ -27,6 +27,8 @@ public class PhotoListItemDto {
 
     private String thumbnailUrl;
 
+    private String originalUrl;
+
     private Integer width;
 
     private Integer height;

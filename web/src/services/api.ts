@@ -11,6 +11,7 @@ import type {
   ConfirmUploadResponse,
   BatchUploadStatusResponse,
   Photo,
+  PhotoDetail,
   PagedResponse,
   GetPhotosParams,
   SearchPhotosParams,
@@ -148,9 +149,11 @@ class ApiService {
     if (params.size !== undefined) queryParams.append('size', params.size.toString());
     if (params.sort) queryParams.append('sort', params.sort);
 
-    const response = await this.client.get<PagedResponse<Photo>>(
-      `/api/v1/photos?${queryParams.toString()}`
-    );
+    const url = `/api/v1/photos?${queryParams.toString()}`;
+    const response = await this.client.get<PagedResponse<Photo>>(url);
+
+    console.log(`[API] Fetched ${response.data.content?.length || 0} photos (page ${params.page || 0})`);
+
     return response.data;
   }
 
@@ -173,10 +176,10 @@ class ApiService {
   }
 
   /**
-   * Get single photo by ID
+   * Get single photo by ID with full details
    */
-  async getPhoto(photoId: string): Promise<Photo> {
-    const response = await this.client.get<Photo>(`/api/v1/photos/${photoId}`);
+  async getPhoto(photoId: string): Promise<PhotoDetail> {
+    const response = await this.client.get<PhotoDetail>(`/api/v1/photos/${photoId}`);
     return response.data;
   }
 

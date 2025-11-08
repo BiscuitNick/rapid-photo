@@ -81,34 +81,70 @@ public class PhotoReadModelMapper {
     public Mono<PhotoListItemDto> toPhotoListItem(Photo photo,
                                                     String thumbnailS3Key,
                                                     List<String> labelNames) {
-        if (thumbnailS3Key == null) {
-            return Mono.just(createPhotoListItemWithoutThumbnail(photo, labelNames));
-        }
+        // Always generate original URL
+        return s3DownloadUrlService.generatePresignedGetUrl(photo.getOriginalS3Key())
+                .flatMap(originalUrlResult -> {
+                    String originalUrl = originalUrlResult.downloadUrl();
 
-        return s3DownloadUrlService.generatePresignedGetUrl(thumbnailS3Key)
-                .map(result -> PhotoListItemDto.builder()
-                        .id(photo.getId())
-                        .fileName(photo.getFileName())
-                        .status(photo.getStatusEnum())
-                        .thumbnailUrl(result.downloadUrl())
-                        .width(photo.getWidth())
-                        .height(photo.getHeight())
-                        .labels(labelNames)
-                        .createdAt(photo.getCreatedAt())
-                        .takenAt(photo.getTakenAt())
-                        .build())
+                    // If no thumbnail, use original URL for thumbnail too
+                    if (thumbnailS3Key == null) {
+                        return Mono.just(PhotoListItemDto.builder()
+                                .id(photo.getId())
+                                .fileName(photo.getFileName())
+                                .status(photo.getStatusEnum())
+                                .thumbnailUrl(null)
+                                .originalUrl(originalUrl)
+                                .width(photo.getWidth())
+                                .height(photo.getHeight())
+                                .labels(labelNames)
+                                .createdAt(photo.getCreatedAt())
+                                .takenAt(photo.getTakenAt())
+                                .build());
+                    }
+
+                    // Generate thumbnail URL
+                    return s3DownloadUrlService.generatePresignedGetUrl(thumbnailS3Key)
+                            .map(thumbnailResult -> PhotoListItemDto.builder()
+                                    .id(photo.getId())
+                                    .fileName(photo.getFileName())
+                                    .status(photo.getStatusEnum())
+                                    .thumbnailUrl(thumbnailResult.downloadUrl())
+                                    .originalUrl(originalUrl)
+                                    .width(photo.getWidth())
+                                    .height(photo.getHeight())
+                                    .labels(labelNames)
+                                    .createdAt(photo.getCreatedAt())
+                                    .takenAt(photo.getTakenAt())
+                                    .build())
+                            .onErrorResume(error -> {
+                                log.warn("Failed to generate thumbnail URL for photo {}, using original", photo.getId(), error);
+                                return Mono.just(PhotoListItemDto.builder()
+                                        .id(photo.getId())
+                                        .fileName(photo.getFileName())
+                                        .status(photo.getStatusEnum())
+                                        .thumbnailUrl(null)
+                                        .originalUrl(originalUrl)
+                                        .width(photo.getWidth())
+                                        .height(photo.getHeight())
+                                        .labels(labelNames)
+                                        .createdAt(photo.getCreatedAt())
+                                        .takenAt(photo.getTakenAt())
+                                        .build());
+                            });
+                })
                 .onErrorResume(error -> {
-                    log.warn("Failed to generate thumbnail URL for photo {}, using null", photo.getId(), error);
-                    return Mono.just(createPhotoListItemWithoutThumbnail(photo, labelNames));
+                    log.error("Failed to generate original URL for photo {}", photo.getId(), error);
+                    return Mono.just(createPhotoListItemWithoutUrls(photo, labelNames));
                 });
     }
 
-    private PhotoListItemDto createPhotoListItemWithoutThumbnail(Photo photo, List<String> labelNames) {
+    private PhotoListItemDto createPhotoListItemWithoutUrls(Photo photo, List<String> labelNames) {
         return PhotoListItemDto.builder()
                 .id(photo.getId())
                 .fileName(photo.getFileName())
                 .status(photo.getStatusEnum())
                 .thumbnailUrl(null)
+                .originalUrl(null)
                 .width(photo.getWidth())
                 .height(photo.getHeight())
                 .labels(labelNames)

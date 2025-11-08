@@ -2,8 +2,8 @@
  * Photo lightbox modal for viewing full photo details
  */
 
-import { useState } from 'react';
-import { Photo } from '../../types/api';
+import { useState, useEffect } from 'react';
+import { Photo, PhotoDetail, PhotoVersionType } from '../../types/api';
 import { apiService } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 
@@ -15,35 +15,65 @@ interface PhotoLightboxProps {
 
 export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) {
   const { toast } = useToast();
-  const [selectedVersion, setSelectedVersion] = useState<string>('original');
+  const [photoDetail, setPhotoDetail] = useState<PhotoDetail | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(true);
+  const [selectedVersion, setSelectedVersion] = useState<PhotoVersionType | 'original'>('original');
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Fetch photo details when component mounts
+  useEffect(() => {
+    const fetchPhotoDetail = async () => {
+      try {
+        setIsLoadingDetail(true);
+        const detail = await apiService.getPhoto(photo.id);
+        setPhotoDetail(detail);
+        // Default to thumbnail if available, otherwise original
+        if (detail.thumbnailUrl) {
+          setSelectedVersion('THUMBNAIL');
+        }
+      } catch (error) {
+        console.error('Failed to fetch photo details:', error);
+        toast({
+          title: 'Failed to load photo details',
+          description: 'Could not load full photo information',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingDetail(false);
+      }
+    };
+
+    fetchPhotoDetail();
+  }, [photo.id, toast]);
+
   // Get the appropriate image URL based on selected version
   const getImageUrl = () => {
+    if (!photoDetail) return photo.thumbnailUrl || photo.originalUrl || '';
+
     if (selectedVersion === 'original') {
-      return photo.originalUrl;
+      return photoDetail.originalUrl;
     }
-    const version = photo.versions.find(v => v.type === selectedVersion);
-    return version?.url || photo.originalUrl;
+    const version = photoDetail.versions.find(v => v.versionType === selectedVersion);
+    return version?.url || photoDetail.originalUrl;
   };
 
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const { url } = await apiService.getDownloadUrl(photo.id, selectedVersion);
+      const response = await apiService.getDownloadUrl(photo.id, selectedVersion as string);
 
       // Trigger download
       const link = document.createElement('a');
-      link.href = url;
-      link.download = photo.fileName;
+      link.href = response.downloadUrl;
+      link.download = response.fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
         title: 'Download started',
-        description: `Downloading ${photo.fileName}`,
+        description: `Downloading ${response.fileName}`,
       });
     } catch (error) {
       console.error('Download failed:', error);
@@ -89,6 +119,39 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
     }
   };
 
+  if (isLoadingDetail) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+        <div className="text-white text-center">
+          <svg
+            className="animate-spin h-12 w-12 mx-auto mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          <p>Loading photo details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!photoDetail) {
+    return null;
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
@@ -98,7 +161,7 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-white truncate">
-            {photo.fileName}
+            {photoDetail.fileName}
           </h2>
           <button
             onClick={onClose}
@@ -116,7 +179,7 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
           <div className="flex-1 flex items-center justify-center bg-black rounded-lg">
             <img
               src={getImageUrl()}
-              alt={photo.fileName}
+              alt={photoDetail.fileName}
               className="max-w-full max-h-full object-contain"
             />
           </div>
@@ -130,13 +193,13 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
               </label>
               <select
                 value={selectedVersion}
-                onChange={(e) => setSelectedVersion(e.target.value)}
+                onChange={(e) => setSelectedVersion(e.target.value as PhotoVersionType | 'original')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="original">Original</option>
-                {photo.versions.map((version) => (
-                  <option key={version.type} value={version.type}>
-                    {version.type.replace(/_/g, ' ')} {version.width && `(${version.width}px)`}
+                {photoDetail.versions.map((version) => (
+                  <option key={version.versionType} value={version.versionType}>
+                    {version.versionType.replace(/_/g, ' ')} {version.width && `(${version.width}px)`}
                   </option>
                 ))}
               </select>
@@ -162,17 +225,18 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
               )}
             </div>
 
-            {/* Tags */}
-            {photo.tags.length > 0 && (
+            {/* Labels */}
+            {photoDetail.labels.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Tags</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Labels</h3>
                 <div className="flex flex-wrap gap-2">
-                  {photo.tags.map((tag, index) => (
+                  {photoDetail.labels.map((label, index) => (
                     <span
                       key={index}
                       className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                      title={`Confidence: ${label.confidence.toFixed(2)}%`}
                     >
-                      {tag}
+                      {label.labelName}
                     </span>
                   ))}
                 </div>
@@ -183,43 +247,45 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-gray-700">Details</h3>
 
-              {photo.metadata.width && photo.metadata.height && (
+              {photoDetail.width && photoDetail.height && (
                 <div>
                   <p className="text-xs text-gray-500">Dimensions</p>
                   <p className="text-sm text-gray-900">
-                    {photo.metadata.width} × {photo.metadata.height}
+                    {photoDetail.width} × {photoDetail.height}
                   </p>
                 </div>
               )}
 
-              {photo.metadata.format && (
+              {photoDetail.mimeType && (
                 <div>
                   <p className="text-xs text-gray-500">Format</p>
-                  <p className="text-sm text-gray-900">{photo.metadata.format}</p>
+                  <p className="text-sm text-gray-900">{photoDetail.mimeType}</p>
                 </div>
               )}
 
-              {photo.metadata.size && (
+              {photoDetail.fileSize && (
                 <div>
                   <p className="text-xs text-gray-500">Size</p>
                   <p className="text-sm text-gray-900">
-                    {(photo.metadata.size / 1024 / 1024).toFixed(2)} MB
+                    {(photoDetail.fileSize / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
               )}
 
-              {photo.metadata.cameraModel && (
+              {photoDetail.cameraMake && photoDetail.cameraModel && (
                 <div>
                   <p className="text-xs text-gray-500">Camera</p>
-                  <p className="text-sm text-gray-900">{photo.metadata.cameraModel}</p>
+                  <p className="text-sm text-gray-900">
+                    {photoDetail.cameraMake} {photoDetail.cameraModel}
+                  </p>
                 </div>
               )}
 
-              {photo.metadata.takenAt && (
+              {photoDetail.takenAt && (
                 <div>
                   <p className="text-xs text-gray-500">Taken</p>
                   <p className="text-sm text-gray-900">
-                    {new Date(photo.metadata.takenAt).toLocaleString()}
+                    {new Date(photoDetail.takenAt).toLocaleString()}
                   </p>
                 </div>
               )}
@@ -227,7 +293,7 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
               <div>
                 <p className="text-xs text-gray-500">Uploaded</p>
                 <p className="text-sm text-gray-900">
-                  {new Date(photo.createdAt).toLocaleString()}
+                  {new Date(photoDetail.createdAt).toLocaleString()}
                 </p>
               </div>
             </div>

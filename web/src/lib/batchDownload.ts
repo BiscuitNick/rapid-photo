@@ -36,10 +36,10 @@ export async function downloadPhotosAsZip(
       });
 
       // Get download URL
-      const { url } = await apiService.getDownloadUrl(photo.id, 'original');
+      const downloadResponse = await apiService.getDownloadUrl(photo.id, 'original');
 
       // Fetch the file
-      const response = await fetch(url);
+      const response = await fetch(downloadResponse.downloadUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${photo.fileName}`);
       }

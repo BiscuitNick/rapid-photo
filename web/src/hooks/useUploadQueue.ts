@@ -35,6 +35,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
   const activeUploadsRef = useRef(0);
   const processingRef = useRef(false);
   const queueRef = useRef<UploadItem[]>([]);
+  const processingItemsRef = useRef<Set<string>>(new Set());
 
   // Keep queueRef in sync with queue state
   useEffect(() => {
@@ -56,7 +57,8 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
     async (item: UploadItem): Promise<void> => {
       try {
         // Step 1: Initiate upload and get presigned URL
-        updateItem(item.id, { status: 'uploading', progress: 0 });
+        // Status is already set to 'uploading' in processQueue, just update progress
+        updateItem(item.id, { progress: 0 });
 
         const initiateResponse = await apiService.initiateUpload({
           fileName: item.file.name,
@@ -129,7 +131,10 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
     while (true) {
       // Get current queue state from ref (always up to date)
       const currentQueue = queueRef.current;
-      const nextItem = currentQueue.find((item) => item.status === 'queued');
+      // Defense-in-depth: Only select items that are queued AND not already being processed
+      const nextItem = currentQueue.find(
+        (item) => item.status === 'queued' && !processingItemsRef.current.has(item.id)
+      );
 
       console.log('[Upload] Current queue size:', currentQueue.length, 'Queued items:', currentQueue.filter(i => i.status === 'queued').length);
 
@@ -147,6 +152,18 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
         continue;
       }
 
+      // FIX: Immediately mark item as uploading to prevent re-processing
+      // Update the ref synchronously to prevent race condition
+      queueRef.current = queueRef.current.map((item) =>
+        item.id === nextItem.id ? { ...item, status: 'uploading' as const } : item
+      );
+
+      // Defense-in-depth: Add to processing set
+      processingItemsRef.current.add(nextItem.id);
+
+      // Also update React state for UI consistency
+      updateItem(nextItem.id, { status: 'uploading' });
+
       // Upload file
       activeUploadsRef.current++;
 
@@ -155,6 +172,8 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
           console.error(`Upload failed for ${nextItem.file.name}:`, error);
         })
         .finally(() => {
+          // Clean up: remove from processing set and decrement counter
+          processingItemsRef.current.delete(nextItem.id);
           activeUploadsRef.current--;
         });
     }

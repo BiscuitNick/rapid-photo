@@ -50,10 +50,7 @@ public class ConfirmUploadHandler {
                         uploadJob.getEtag(),
                         uploadJob.getConfirmedAt()
                 ).thenReturn(uploadJob))
-                .flatMap(this::createPhoto)
-                .flatMap(photo -> photoRepository.saveWithEnumCast(photo)
-                        .flatMap(savedPhoto -> publishEvent(savedPhoto, uploadJobRepository.findById(command.uploadId()))
-                                .thenReturn(savedPhoto)))
+                .flatMap(this::createOrGetExistingPhoto)
                 .map(this::toResponse)
                 .doOnSuccess(response -> log.info("Successfully confirmed upload, photoId: {}, uploadId: {}",
                         response.getPhotoId(), response.getUploadId()))
@@ -87,35 +84,47 @@ public class ConfirmUploadHandler {
         return Mono.just(uploadJob);
     }
 
-    private Mono<Photo> createPhoto(UploadJob uploadJob) {
-        Photo photo = Photo.fromUploadJob(uploadJob);
-        log.debug("Creating photo from upload job: {}", uploadJob.getId());
-        return Mono.just(photo);
+    /**
+     * Check if photo already exists for this upload, otherwise create it.
+     * This prevents duplicate photo creation if confirm is called multiple times.
+     */
+    private Mono<Photo> createOrGetExistingPhoto(UploadJob uploadJob) {
+        return photoRepository.findByUploadJobId(uploadJob.getId())
+                .flatMap(existingPhoto -> {
+                    log.info("Photo already exists for uploadJobId: {}, returning existing photoId: {}",
+                            uploadJob.getId(), existingPhoto.getId());
+                    return Mono.just(existingPhoto);
+                })
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.info("Creating new photo for uploadJobId: {}", uploadJob.getId());
+                    Photo newPhoto = Photo.fromUploadJob(uploadJob);
+                    return photoRepository.saveWithEnumCast(newPhoto)
+                            .flatMap(savedPhoto -> publishEvent(savedPhoto, uploadJob)
+                                    .thenReturn(savedPhoto));
+                }));
     }
 
-    private Mono<Void> publishEvent(Photo photo, Mono<UploadJob> uploadJobMono) {
-        return uploadJobMono.flatMap(uploadJob -> {
-            // Mark upload job as confirmed now
-            uploadJob.confirm(uploadJob.getEtag());
-            return uploadJobRepository.updateStatusWithEnumCast(
+    private Mono<Void> publishEvent(Photo photo, UploadJob uploadJob) {
+        // Mark upload job as confirmed now
+        uploadJob.confirm(uploadJob.getEtag());
+        return uploadJobRepository.updateStatusWithEnumCast(
+                uploadJob.getId(),
+                uploadJob.getStatus(),
+                uploadJob.getEtag(),
+                uploadJob.getConfirmedAt()
+        ).then(Mono.defer(() -> {
+            PhotoUploadConfirmedEvent event = new PhotoUploadConfirmedEvent(
+                    photo.getId(),
                     uploadJob.getId(),
-                    uploadJob.getStatus(),
-                    uploadJob.getEtag(),
-                    uploadJob.getConfirmedAt()
-            ).then(Mono.defer(() -> {
-                        PhotoUploadConfirmedEvent event = new PhotoUploadConfirmedEvent(
-                                photo.getId(),
-                                uploadJob.getId(),
-                                photo.getUserId(),
-                                photo.getOriginalS3Key(),
-                                photo.getFileName(),
-                                photo.getFileSize(),
-                                photo.getMimeType(),
-                                Instant.now()
-                        );
-                        return photoEventPublisher.publishPhotoUploadConfirmed(event);
-                    }));
-        });
+                    photo.getUserId(),
+                    photo.getOriginalS3Key(),
+                    photo.getFileName(),
+                    photo.getFileSize(),
+                    photo.getMimeType(),
+                    Instant.now()
+            );
+            return photoEventPublisher.publishPhotoUploadConfirmed(event);
+        }));
     }
 
     private ConfirmUploadResponse toResponse(Photo photo) {

@@ -73,54 +73,84 @@ export interface UploadItem {
  * Gallery and photo types
  */
 
+export type PhotoStatus = 'PENDING_PROCESSING' | 'PROCESSING' | 'READY' | 'FAILED';
+
+export type PhotoVersionType =
+  | 'THUMBNAIL'
+  | 'WEBP_640'
+  | 'WEBP_1280'
+  | 'WEBP_1920'
+  | 'WEBP_2560';
+
 export interface PhotoVersion {
-  type: string; // 'THUMBNAIL', 'WEBP_800', 'WEBP_1200', 'WEBP_1920'
+  versionType: PhotoVersionType;
   url: string;
   width?: number;
   height?: number;
+  fileSize?: number;
+  mimeType?: string;
 }
 
-export interface PhotoMetadata {
-  width?: number;
-  height?: number;
-  format?: string;
-  size?: number;
-  takenAt?: string;
-  location?: string;
-  cameraModel?: string;
-  exposureTime?: string;
-  fNumber?: string;
-  iso?: number;
+export interface PhotoLabel {
+  labelName: string;
+  confidence: number;
+  confidenceLevel: string;
 }
 
+/**
+ * Lightweight photo item for gallery list view
+ * Matches backend PhotoListItemDto
+ */
 export interface Photo {
   id: string;
-  userId: string;
   fileName: string;
-  originalUrl: string;
-  thumbnailUrl?: string;
-  versions: PhotoVersion[];
-  tags: string[];
-  metadata: PhotoMetadata;
-  status: string; // 'PENDING_PROCESSING', 'PROCESSING', 'READY', 'FAILED'
+  status: PhotoStatus;
+  thumbnailUrl: string | null;
+  originalUrl: string | null;
+  width: number | null;
+  height: number | null;
+  labels: string[];
   createdAt: string;
-  updatedAt: string;
+  takenAt: string | null;
 }
 
-export interface PageInfo {
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  isFirst: boolean;
-  isLast: boolean;
-  hasNext: boolean;
-  hasPrevious: boolean;
+/**
+ * Detailed photo with all metadata and versions
+ * Matches backend PhotoResponse
+ */
+export interface PhotoDetail {
+  id: string;
+  fileName: string;
+  status: PhotoStatus;
+  fileSize: number;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+  originalUrl: string;
+  thumbnailUrl: string | null;
+  versions: PhotoVersion[];
+  labels: PhotoLabel[];
+  createdAt: string;
+  processedAt: string | null;
+  takenAt: string | null;
+  cameraMake: string | null;
+  cameraModel: string | null;
+  gpsLatitude: number | null;
+  gpsLongitude: number | null;
 }
 
+/**
+ * Pagination response structure
+ * Matches backend PagedPhotosResponse
+ */
 export interface PagedResponse<T> {
   content: T[];
-  page: PageInfo;
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 export interface GetPhotosParams {
@@ -134,6 +164,8 @@ export interface SearchPhotosParams extends GetPhotosParams {
 }
 
 export interface DownloadUrlResponse {
-  url: string;
+  downloadUrl: string;
   expiresAt: string;
+  fileName: string;
+  fileSize: number;
 }

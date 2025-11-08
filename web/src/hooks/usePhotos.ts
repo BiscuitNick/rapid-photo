@@ -56,7 +56,7 @@ export function usePhotos(params: UsePhotosParams = {}): UsePhotosResult {
         : await apiService.getPhotos(searchParams);
     },
     getNextPageParam: (lastPage) => {
-      return lastPage.page.hasNext ? lastPage.page.pageNumber + 1 : undefined;
+      return lastPage.hasNext ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 0,
     staleTime: 2 * 60 * 1000, // 2 minutes

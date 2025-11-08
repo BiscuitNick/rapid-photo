@@ -13,13 +13,9 @@ interface PhotoCardProps {
 }
 
 export function PhotoCard({ photo, isSelected, onSelect, onClick }: PhotoCardProps) {
-  const versions = photo?.versions ?? [];
-  const tags = photo?.tags ?? [];
-  const thumbnailUrl =
-    photo?.thumbnailUrl ||
-    versions.find((v) => v?.type === 'THUMBNAIL')?.url ||
-    photo?.originalUrl ||
-    '';
+  const labels = photo?.labels ?? [];
+  // Fallback to original URL if thumbnail is not available
+  const imageUrl = photo?.thumbnailUrl || photo?.originalUrl || '';
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -50,7 +46,7 @@ export function PhotoCard({ photo, isSelected, onSelect, onClick }: PhotoCardPro
       {/* Photo image */}
       <div className="aspect-square bg-gray-100">
         <img
-          src={thumbnailUrl}
+          src={imageUrl}
           alt={photo.fileName}
           className="w-full h-full object-cover"
           loading="lazy"
@@ -61,20 +57,20 @@ export function PhotoCard({ photo, isSelected, onSelect, onClick }: PhotoCardPro
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
         <p className="text-white text-sm font-medium truncate">{photo.fileName}</p>
 
-        {/* Tags */}
-        {tags.length > 0 && (
+        {/* Labels */}
+        {labels.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {tags.slice(0, 3).map((tag, index) => (
+            {labels.slice(0, 3).map((label, index) => (
               <span
                 key={index}
                 className="px-2 py-0.5 bg-white/20 text-white text-xs rounded-full backdrop-blur-sm"
               >
-                {tag}
+                {label}
               </span>
             ))}
-            {tags.length > 3 && (
+            {labels.length > 3 && (
               <span className="px-2 py-0.5 text-white text-xs">
-                +{tags.length - 3}
+                +{labels.length - 3}
               </span>
             )}
           </div>

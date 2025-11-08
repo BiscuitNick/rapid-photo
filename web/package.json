@@ -15,7 +15,9 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "amplify:sandbox": "npx ampx sandbox",
-    "amplify:deploy": "npx ampx sandbox --outputs-out-dir src"
+    "amplify:deploy": "npx ampx sandbox --outputs-out-dir src",
+    "adminer:start": "docker start rapidphoto-adminer 2>/dev/null || docker run -d --name rapidphoto-adminer --link rapidphoto-postgres:db -p 8081:8080 adminer",
+    "adminer:stop": "docker stop rapidphoto-adminer"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.8",
