@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiService } from '../services/api';
+import { useInvalidatePhotos } from './usePhotos';
 import type { UploadItem } from '../types/api';
 
 const MAX_CONCURRENT_UPLOADS = 10;
@@ -36,6 +37,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
   const processingRef = useRef(false);
   const queueRef = useRef<UploadItem[]>([]);
   const processingItemsRef = useRef<Set<string>>(new Set());
+  const invalidatePhotos = useInvalidatePhotos();
 
   // Keep queueRef in sync with queue state
   useEffect(() => {
@@ -94,6 +96,9 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
           status: 'complete',
           photoId: confirmResponse.photoId,
         });
+
+        // Invalidate photos query to refresh gallery
+        invalidatePhotos();
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Upload failed';
@@ -118,7 +123,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
         throw error;
       }
     },
-    [updateItem]
+    [updateItem, invalidatePhotos]
   );
 
   // Process queue with concurrency control
