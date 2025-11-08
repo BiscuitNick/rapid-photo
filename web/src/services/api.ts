@@ -33,7 +33,8 @@ class ApiService {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        const token = useAuthStore.getState().accessToken;
+        const { idToken, accessToken } = useAuthStore.getState();
+        const token = idToken ?? accessToken;
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -53,7 +54,8 @@ class ApiService {
 
           try {
             await useAuthStore.getState().refreshTokens();
-            const token = useAuthStore.getState().accessToken;
+            const { idToken, accessToken } = useAuthStore.getState();
+            const token = idToken ?? accessToken;
             if (token) {
               originalRequest.headers.Authorization = `Bearer ${token}`;
             }

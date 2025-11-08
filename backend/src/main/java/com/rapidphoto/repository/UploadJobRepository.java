@@ -25,6 +25,7 @@ public interface UploadJobRepository extends ReactiveCrudRepository<UploadJob, U
     /**
      * Find upload jobs by user and status.
      */
+    @Query("SELECT * FROM upload_jobs WHERE user_id = :userId AND status = :#{#status.name()}::upload_job_status ORDER BY created_at DESC")
     Flux<UploadJob> findByUserIdAndStatus(UUID userId, UploadJobStatus status);
 
     /**

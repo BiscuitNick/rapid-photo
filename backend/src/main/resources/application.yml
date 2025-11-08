@@ -83,11 +83,18 @@ management:
 # Logging
 logging:
   level:
-    root: INFO
-    com.rapidphoto: DEBUG
-    org.springframework.data.r2dbc: DEBUG
-    org.springframework.security: DEBUG
-    io.r2dbc.postgresql: DEBUG
+    root: WARN
+    com.rapidphoto: WARN
+    org.springframework.boot: WARN
+    org.springframework.web: WARN
+    org.springframework.context: WARN
+    org.springframework.data: WARN
+    org.springframework.security: WARN
+    org.springframework.r2dbc: WARN
+    org.flywaydb: WARN
+    io.r2dbc.postgresql: WARN
+    io.netty: WARN
+    reactor.netty: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -142,10 +149,18 @@ management:
 
 logging:
   level:
-    root: INFO
-    com.rapidphoto: DEBUG
-    org.springframework.data.r2dbc: TRACE
-    io.r2dbc.postgresql: DEBUG
+    root: WARN
+    com.rapidphoto: WARN
+    org.springframework.boot: WARN
+    org.springframework.web: WARN
+    org.springframework.context: WARN
+    org.springframework.data: WARN
+    org.springframework.security: WARN
+    org.springframework.r2dbc: WARN
+    org.flywaydb: WARN
+    io.r2dbc.postgresql: WARN
+    io.netty: WARN
+    reactor.netty: WARN
 
 ---
 # Test Profile
@@ -178,8 +193,8 @@ management:
 logging:
   level:
     root: WARN
-    com.rapidphoto: DEBUG
-    org.testcontainers: INFO
+    com.rapidphoto: WARN
+    org.testcontainers: WARN
 
 ---
 # Production Profile
@@ -213,6 +228,12 @@ management:
 logging:
   level:
     root: WARN
-    com.rapidphoto: INFO
+    com.rapidphoto: WARN
+    io.r2dbc.postgresql: WARN
+    io.netty: WARN
+    reactor.netty: WARN
+    org.springframework.r2dbc: WARN
+    org.springframework.boot: WARN
+    org.springframework.web: WARN
     org.springframework.data.r2dbc: INFO
     org.springframework.security: INFO

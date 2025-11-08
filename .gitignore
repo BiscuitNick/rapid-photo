@@ -9,6 +9,16 @@ dev-debug.log
 # Dependency directories
 node_modules/
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Build caches
+.turbo/
+.cache/
+
 # Environment variables
 .env
 .env.local
@@ -31,10 +41,12 @@ node_modules/
 
 # Gradle
 .gradle/
+.gradle-home/
 **/build/
 !src/**/build/
 gradle-app.setting
 .gradletasknamecache
+!gradle/wrapper/gradle-wrapper.jar
 
 # Java / JVM
 *.class
@@ -70,8 +82,15 @@ htmlcov/
 
 # IDEs
 *.iml
+*.iws
 .idea/
+.idea_modules/
 .vscode/
+out/
+.classpath
+.project
+.settings/
+bin/
 
 # Mac
 .DS_Store

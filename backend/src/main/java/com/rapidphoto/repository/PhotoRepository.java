@@ -32,6 +32,12 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
     /**
      * Find photos by user ID and status with pagination.
      */
+    @Query("""
+            SELECT * FROM photos
+            WHERE user_id = :userId AND status = :#{#status.name()}::photo_status
+            ORDER BY created_at DESC
+            LIMIT :#{#pageable.pageSize} OFFSET :#{#pageable.offset}
+            """)
     Flux<Photo> findByUserIdAndStatusOrderByCreatedAtDesc(UUID userId, PhotoStatus status, Pageable pageable);
 
     /**
@@ -47,6 +53,7 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
     /**
      * Count photos by user ID and status.
      */
+    @Query("SELECT COUNT(*) FROM photos WHERE user_id = :userId AND status = :#{#status.name()}::photo_status")
     Mono<Long> countByUserIdAndStatus(UUID userId, PhotoStatus status);
 
     /**
@@ -57,6 +64,7 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
     /**
      * Find photos pending processing (for monitoring).
      */
+    @Query("SELECT * FROM photos WHERE status = :#{#status.name()}::photo_status ORDER BY created_at ASC")
     Flux<Photo> findByStatusOrderByCreatedAtAsc(PhotoStatus status);
 
     /**

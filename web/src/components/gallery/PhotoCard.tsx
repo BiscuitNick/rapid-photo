@@ -13,7 +13,13 @@ interface PhotoCardProps {
 }
 
 export function PhotoCard({ photo, isSelected, onSelect, onClick }: PhotoCardProps) {
-  const thumbnailUrl = photo.thumbnailUrl || photo.versions.find(v => v.type === 'THUMBNAIL')?.url || photo.originalUrl;
+  const versions = photo?.versions ?? [];
+  const tags = photo?.tags ?? [];
+  const thumbnailUrl =
+    photo?.thumbnailUrl ||
+    versions.find((v) => v?.type === 'THUMBNAIL')?.url ||
+    photo?.originalUrl ||
+    '';
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,9 +62,9 @@ export function PhotoCard({ photo, isSelected, onSelect, onClick }: PhotoCardPro
         <p className="text-white text-sm font-medium truncate">{photo.fileName}</p>
 
         {/* Tags */}
-        {photo.tags.length > 0 && (
+        {tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {photo.tags.slice(0, 3).map((tag, index) => (
+            {tags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
                 className="px-2 py-0.5 bg-white/20 text-white text-xs rounded-full backdrop-blur-sm"
@@ -66,9 +72,9 @@ export function PhotoCard({ photo, isSelected, onSelect, onClick }: PhotoCardPro
                 {tag}
               </span>
             ))}
-            {photo.tags.length > 3 && (
+            {tags.length > 3 && (
               <span className="px-2 py-0.5 text-white text-xs">
-                +{photo.tags.length - 3}
+                +{tags.length - 3}
               </span>
             )}
           </div>
@@ -76,7 +82,7 @@ export function PhotoCard({ photo, isSelected, onSelect, onClick }: PhotoCardPro
       </div>
 
       {/* Status indicator */}
-      {photo.status !== 'READY' && (
+      {photo?.status && photo.status !== 'READY' && (
         <div className="absolute top-2 right-2">
           <span
             className={cn(

@@ -2,6 +2,7 @@ package com.rapidphoto.repository;
 
 import com.rapidphoto.domain.PhotoVersion;
 import com.rapidphoto.domain.PhotoVersionType;
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -24,11 +25,13 @@ public interface PhotoVersionRepository extends ReactiveCrudRepository<PhotoVers
     /**
      * Find specific version type for a photo.
      */
+    @Query("SELECT * FROM photo_versions WHERE photo_id = :photoId AND version_type = :#{#versionType.name()}::photo_version_type")
     Mono<PhotoVersion> findByPhotoIdAndVersionType(UUID photoId, PhotoVersionType versionType);
 
     /**
      * Find all thumbnails for multiple photos.
      */
+    @Query("SELECT * FROM photo_versions WHERE photo_id IN (:photoIds) AND version_type = :#{#versionType.name()}::photo_version_type")
     Flux<PhotoVersion> findByPhotoIdInAndVersionType(Collection<UUID> photoIds, PhotoVersionType versionType);
 
     /**
@@ -44,5 +47,6 @@ public interface PhotoVersionRepository extends ReactiveCrudRepository<PhotoVers
     /**
      * Check if a specific version exists for a photo.
      */
+    @Query("SELECT EXISTS (SELECT 1 FROM photo_versions WHERE photo_id = :photoId AND version_type = :#{#versionType.name()}::photo_version_type)")
     Mono<Boolean> existsByPhotoIdAndVersionType(UUID photoId, PhotoVersionType versionType);
 }
