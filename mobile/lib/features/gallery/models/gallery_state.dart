@@ -2,10 +2,11 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'photo_list_item.dart';
 
 part 'gallery_state.freezed.dart';
+part 'gallery_state.g.dart';
 
 /// State for the gallery screen
 @freezed
-class GalleryState with _$GalleryState {
+abstract class GalleryState with _$GalleryState {
   const factory GalleryState({
     /// List of photos
     @Default([]) List<PhotoListItem> photos,
@@ -38,8 +39,11 @@ class GalleryState with _$GalleryState {
     String? error,
   }) = _GalleryState;
 
-  const GalleryState._();
+  factory GalleryState.fromJson(Map<String, dynamic> json) =>
+      _$GalleryStateFromJson(json);
+}
 
+extension GalleryStateExtensions on GalleryState {
   /// Check if the gallery is empty
   bool get isEmpty => photos.isEmpty && !isLoading && !isRefreshing;
 

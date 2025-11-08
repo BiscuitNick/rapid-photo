@@ -6,7 +6,7 @@ part 'photo_list_item.g.dart';
 
 /// Lightweight DTO for photo list/grid view
 @freezed
-class PhotoListItem with _$PhotoListItem {
+abstract class PhotoListItem with _$PhotoListItem {
   const factory PhotoListItem({
     required String id,
     required String fileName,

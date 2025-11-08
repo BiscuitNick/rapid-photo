@@ -15,7 +15,9 @@ enum UploadStatus {
 
 /// Represents a single file upload
 @freezed
-class UploadItem with _$UploadItem {
+abstract class UploadItem with _$UploadItem {
+  
+
   const factory UploadItem({
     required String id,
     required String localPath,
@@ -40,7 +42,9 @@ class UploadItem with _$UploadItem {
 
 /// State of the upload queue
 @freezed
-class UploadQueueState with _$UploadQueueState {
+abstract class UploadQueueState with _$UploadQueueState {
+  
+
   const factory UploadQueueState({
     @Default([]) List<UploadItem> items,
     @Default(0) int activeUploads,

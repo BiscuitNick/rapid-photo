@@ -6,7 +6,9 @@ part 'photo_version.g.dart';
 
 /// DTO for photo version information with URL
 @freezed
-class PhotoVersion with _$PhotoVersion {
+abstract class PhotoVersion with _$PhotoVersion {
+  
+
   const factory PhotoVersion({
     required PhotoVersionType versionType,
     required String url,

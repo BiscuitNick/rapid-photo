@@ -1,11 +1,14 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/gallery_state.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/photo_list_item.dart';
 import 'package:rapid_photo_mobile/features/gallery/services/gallery_service.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'gallery_notifier.g.dart';
 
 /// Notifier for managing gallery state
-class GalleryNotifier extends AutoDisposeAsyncNotifier<GalleryState> {
+@riverpod
+class GalleryNotifier extends _$GalleryNotifier {
   final Logger _logger = Logger();
   GalleryService get _galleryService => ref.read(galleryServiceProvider);
 
@@ -228,9 +231,3 @@ class GalleryNotifier extends AutoDisposeAsyncNotifier<GalleryState> {
     }
   }
 }
-
-/// Provider for gallery state
-final galleryProvider =
-    AutoDisposeAsyncNotifierProvider<GalleryNotifier, GalleryState>(
-  () => GalleryNotifier(),
-);

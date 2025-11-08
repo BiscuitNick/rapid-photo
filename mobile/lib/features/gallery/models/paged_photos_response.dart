@@ -6,7 +6,9 @@ part 'paged_photos_response.g.dart';
 
 /// Paginated response for photo listings
 @freezed
-class PagedPhotosResponse with _$PagedPhotosResponse {
+abstract class PagedPhotosResponse with _$PagedPhotosResponse {
+  
+
   const factory PagedPhotosResponse({
     @Default([]) List<PhotoListItem> content,
     @Default(0) int page,

@@ -92,7 +92,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     );
   }
 
-  Widget _buildGalleryContent(state) {
+  Widget _buildGalleryContent(GalleryState state) {
     if (state.isEmpty) {
       return Center(
         child: Column(

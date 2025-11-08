@@ -8,7 +8,9 @@ part 'photo_response.g.dart';
 
 /// Detailed photo response with all metadata and versions
 @freezed
-class PhotoResponse with _$PhotoResponse {
+abstract class PhotoResponse with _$PhotoResponse {
+  
+
   const factory PhotoResponse({
     required String id,
     required String fileName,
