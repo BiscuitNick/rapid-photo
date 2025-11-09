@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/photo_response.dart';
+import 'package:rapid_photo_mobile/features/gallery/models/photo_status.dart';
+import 'package:rapid_photo_mobile/features/gallery/models/photo_version_type.dart';
 import 'package:rapid_photo_mobile/features/gallery/providers/gallery_notifier.dart';
 import 'package:rapid_photo_mobile/features/gallery/providers/photo_detail_provider.dart';
 import 'package:rapid_photo_mobile/features/gallery/services/download_service.dart';
@@ -204,7 +206,7 @@ class PhotoDetailScreen extends ConsumerWidget {
                       context,
                       ref,
                       photo,
-                      version.versionType.name,
+                      _versionTypeToString(version.versionType),
                     ),
                   ),
                 );
@@ -260,11 +262,17 @@ class PhotoDetailScreen extends ConsumerWidget {
     );
   }
 
-  String _formatStatus(status) {
-    return status.name.replaceAllMapped(
-      RegExp(r'([A-Z])'),
-      (match) => ' ${match.group(0)}',
-    ).trim();
+  String _formatStatus(PhotoStatus status) {
+    switch (status) {
+      case PhotoStatus.pendingProcessing:
+        return 'Pending Processing';
+      case PhotoStatus.processing:
+        return 'Processing';
+      case PhotoStatus.ready:
+        return 'Ready';
+      case PhotoStatus.failed:
+        return 'Failed';
+    }
   }
 
   String _formatBytes(int bytes) {
@@ -277,11 +285,34 @@ class PhotoDetailScreen extends ConsumerWidget {
     return DateFormat('MMM dd, yyyy HH:mm').format(date);
   }
 
-  String _formatVersionType(type) {
-    return type.name.replaceAllMapped(
-      RegExp(r'([A-Z])'),
-      (match) => ' ${match.group(0)}',
-    ).trim();
+  String _formatVersionType(PhotoVersionType type) {
+    switch (type) {
+      case PhotoVersionType.thumbnail:
+        return 'Thumbnail';
+      case PhotoVersionType.webp640:
+        return 'WebP 640px';
+      case PhotoVersionType.webp1280:
+        return 'WebP 1280px';
+      case PhotoVersionType.webp1920:
+        return 'WebP 1920px';
+      case PhotoVersionType.webp2560:
+        return 'WebP 2560px';
+    }
+  }
+
+  String _versionTypeToString(PhotoVersionType type) {
+    switch (type) {
+      case PhotoVersionType.thumbnail:
+        return 'THUMBNAIL';
+      case PhotoVersionType.webp640:
+        return 'WEBP_640';
+      case PhotoVersionType.webp1280:
+        return 'WEBP_1280';
+      case PhotoVersionType.webp1920:
+        return 'WEBP_1920';
+      case PhotoVersionType.webp2560:
+        return 'WEBP_2560';
+    }
   }
 
   Color _getConfidenceColor(double confidence) {

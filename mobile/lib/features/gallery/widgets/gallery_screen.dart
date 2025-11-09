@@ -265,12 +265,12 @@ class PhotoGridItem extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Thumbnail image
+          // Thumbnail image (fallback to original if thumbnail not available)
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: photo.thumbnailUrl != null
+            child: (photo.thumbnailUrl ?? photo.originalUrl) != null
                 ? CachedNetworkImage(
-                    imageUrl: photo.thumbnailUrl!,
+                    imageUrl: photo.thumbnailUrl ?? photo.originalUrl!,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
                       color: Colors.grey[300],
