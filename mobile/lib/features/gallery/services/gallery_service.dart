@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
+import 'package:rapid_photo_mobile/config/api_config.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/paged_photos_response.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/photo_response.dart';
 import 'package:rapid_photo_mobile/shared/auth/amplify_auth_service.dart';
@@ -139,10 +140,9 @@ class _AuthInterceptor extends Interceptor {
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      // TODO: Load from environment configuration
-      baseUrl: 'http://localhost:8080',
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      baseUrl: ApiConfig.baseUrl,
+      connectTimeout: Duration(milliseconds: ApiConfig.connectTimeout),
+      receiveTimeout: Duration(milliseconds: ApiConfig.receiveTimeout),
       validateStatus: (status) => status != null && status < 500,
     ),
   );

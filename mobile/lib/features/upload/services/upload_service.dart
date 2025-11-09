@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
+import 'package:rapid_photo_mobile/config/api_config.dart';
 import 'package:rapid_photo_mobile/shared/auth/amplify_auth_service.dart';
 
 /// Response from generate presigned URL endpoint
@@ -49,16 +50,12 @@ class UploadService {
   final AmplifyAuthService _authService;
   final Logger _logger = Logger();
 
-  // Backend API base URL
-  // TODO: Replace with actual backend URL from environment
-  static const String _baseUrl = 'http://localhost:8080/api/v1';
-
   UploadService({
     required Dio dio,
     required AmplifyAuthService authService,
   })  : _dio = dio,
         _authService = authService {
-    _dio.options.baseUrl = _baseUrl;
+    _dio.options.baseUrl = ApiConfig.apiBaseUrl;
     _dio.interceptors.add(_AuthInterceptor(authService));
   }
 
