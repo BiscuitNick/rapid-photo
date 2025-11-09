@@ -98,37 +98,63 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
   Widget _buildFilterBar(UploadQueueState state) {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: SegmentedButton<UploadStatusFilter>(
-        segments: [
-          ButtonSegment(
-            value: UploadStatusFilter.all,
-            label: Text('All (${state.items.length})'),
-            icon: const Icon(Icons.list),
+      child: Column(
+        children: [
+          // Icon-only segmented control
+          SegmentedButton<UploadStatusFilter>(
+            segments: const [
+              ButtonSegment(
+                value: UploadStatusFilter.all,
+                icon: Icon(Icons.list),
+                tooltip: 'All',
+              ),
+              ButtonSegment(
+                value: UploadStatusFilter.uploading,
+                icon: Icon(Icons.cloud_upload),
+                tooltip: 'Uploading',
+              ),
+              ButtonSegment(
+                value: UploadStatusFilter.complete,
+                icon: Icon(Icons.check_circle),
+                tooltip: 'Complete',
+              ),
+              ButtonSegment(
+                value: UploadStatusFilter.failed,
+                icon: Icon(Icons.error),
+                tooltip: 'Failed',
+              ),
+            ],
+            selected: {_filter},
+            onSelectionChanged: (Set<UploadStatusFilter> newSelection) {
+              setState(() {
+                _filter = newSelection.first;
+              });
+            },
           ),
-          ButtonSegment(
-            value: UploadStatusFilter.uploading,
-            label: Text('Uploading (${state.uploadingItems.length})'),
-            icon: const Icon(Icons.cloud_upload),
-          ),
-          ButtonSegment(
-            value: UploadStatusFilter.complete,
-            label: Text('Complete (${state.completedItems.length})'),
-            icon: const Icon(Icons.check_circle),
-          ),
-          ButtonSegment(
-            value: UploadStatusFilter.failed,
-            label: Text('Failed (${state.failedItems.length})'),
-            icon: const Icon(Icons.error),
+          const SizedBox(height: 12),
+          // Current filter label
+          Text(
+            _getFilterLabel(state),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
           ),
         ],
-        selected: {_filter},
-        onSelectionChanged: (Set<UploadStatusFilter> newSelection) {
-          setState(() {
-            _filter = newSelection.first;
-          });
-        },
       ),
     );
+  }
+
+  String _getFilterLabel(UploadQueueState state) {
+    switch (_filter) {
+      case UploadStatusFilter.all:
+        return 'All (${state.items.length})';
+      case UploadStatusFilter.uploading:
+        return 'Uploading (${state.uploadingItems.length})';
+      case UploadStatusFilter.complete:
+        return 'Complete (${state.completedItems.length})';
+      case UploadStatusFilter.failed:
+        return 'Failed (${state.failedItems.length})';
+    }
   }
 
   Widget _buildProgressSummary(UploadQueueState state) {

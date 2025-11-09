@@ -1,7 +1,7 @@
 import 'package:logger/logger.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/gallery_state.dart';
-import 'package:rapid_photo_mobile/features/gallery/models/photo_list_item.dart';
 import 'package:rapid_photo_mobile/features/gallery/services/gallery_service.dart';
+import 'package:rapid_photo_mobile/shared/cache/image_cache_manager.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'gallery_notifier.g.dart';
@@ -204,6 +204,10 @@ class GalleryNotifier extends _$GalleryNotifier {
     try {
       await _galleryService.deletePhoto(photoId);
 
+      // Clear cached images for this photo
+      await PhotoImageCacheManager.removeFromCache('${photoId}_thumbnail');
+      await PhotoImageCacheManager.removeFromCache('${photoId}_original');
+
       // Remove from local state
       final currentState = state.value;
       if (currentState != null) {
@@ -293,6 +297,14 @@ class GalleryNotifier extends _$GalleryNotifier {
       // Delete all selected photos
       await Future.wait(
         photoIdsToDelete.map((id) => _galleryService.deletePhoto(id)),
+      );
+
+      // Clear cached images for all deleted photos
+      await Future.wait(
+        photoIdsToDelete.expand((id) => [
+          PhotoImageCacheManager.removeFromCache('${id}_thumbnail'),
+          PhotoImageCacheManager.removeFromCache('${id}_original'),
+        ]),
       );
 
       // Remove deleted photos from local state

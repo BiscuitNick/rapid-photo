@@ -7,6 +7,7 @@ import 'package:rapid_photo_mobile/features/gallery/models/photo_version_type.da
 import 'package:rapid_photo_mobile/features/gallery/providers/gallery_notifier.dart';
 import 'package:rapid_photo_mobile/features/gallery/providers/photo_detail_provider.dart';
 import 'package:rapid_photo_mobile/features/gallery/services/download_service.dart';
+import 'package:rapid_photo_mobile/shared/cache/image_cache_manager.dart';
 import 'package:intl/intl.dart';
 
 /// Photo detail screen showing full metadata and actions
@@ -72,6 +73,8 @@ class PhotoDetailScreen extends ConsumerWidget {
             child: photo.originalUrl != null
                 ? CachedNetworkImage(
                     imageUrl: photo.originalUrl!,
+                    cacheKey: '${photo.id}_original',
+                    cacheManager: PhotoImageCacheManager.instance,
                     fit: BoxFit.contain,
                     placeholder: (context, url) => Container(
                       color: Colors.grey[300],

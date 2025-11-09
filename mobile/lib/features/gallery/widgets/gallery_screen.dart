@@ -7,6 +7,7 @@ import 'package:rapid_photo_mobile/features/gallery/models/photo_status.dart';
 import 'package:rapid_photo_mobile/features/gallery/providers/gallery_notifier.dart';
 import 'package:rapid_photo_mobile/features/gallery/widgets/photo_detail_screen.dart';
 import 'package:rapid_photo_mobile/features/gallery/widgets/search_bar_widget.dart';
+import 'package:rapid_photo_mobile/shared/cache/image_cache_manager.dart';
 
 /// Main gallery screen showing photo grid
 class GalleryScreen extends ConsumerStatefulWidget {
@@ -356,6 +357,8 @@ class PhotoGridItem extends StatelessWidget {
             child: (photo.thumbnailUrl ?? photo.originalUrl) != null
                 ? CachedNetworkImage(
                     imageUrl: photo.thumbnailUrl ?? photo.originalUrl!,
+                    cacheKey: '${photo.id}_thumbnail',
+                    cacheManager: PhotoImageCacheManager.instance,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
                       color: Colors.grey[300],
