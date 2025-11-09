@@ -67,7 +67,8 @@ def notify_backend_complete(photo_id: str, result: Dict[str, Any]) -> None:
 def process_single_image(
     photo_id: str,
     s3_key: str,
-    user_id: str
+    user_id: str,
+    notify_backend: bool = True
 ) -> Dict[str, Any]:
     """
     Process a single image through the complete pipeline.
@@ -76,6 +77,7 @@ def process_single_image(
         photo_id: UUID of the photo record
         s3_key: S3 key of the original image
         user_id: User ID who owns the photo
+        notify_backend: Whether to notify backend when complete (False for S3 events)
 
     Returns:
         Processing result dictionary
@@ -118,9 +120,13 @@ def process_single_image(
         'labels': []
     }
 
-    logger.info(f"Notifying backend for photo {photo_id}")
-    notify_backend_complete(photo_id, result)
-    logger.info("Backend notification complete")
+    # Only notify backend if requested (skip for S3 events)
+    if notify_backend:
+        logger.info(f"Notifying backend for photo {photo_id}")
+        notify_backend_complete(photo_id, result)
+        logger.info("Backend notification complete")
+    else:
+        logger.info(f"Skipping backend notification for S3 event (photo {photo_id})")
 
     return {
         'photo_id': photo_id,
@@ -154,7 +160,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             body = json.loads(record['body'])
 
             # Detect message type: S3 event notification vs backend custom message
-            if 'Records' in body and body.get('Records', [{}])[0].get('eventSource') == 'aws:s3':
+            is_s3_event = 'Records' in body and body.get('Records', [{}])[0].get('eventSource') == 'aws:s3'
+
+            if is_s3_event:
                 # S3 event notification - parse S3 event structure
                 s3_record = body['Records'][0]
                 s3_key = s3_record['s3']['object']['key']
@@ -186,8 +194,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     })
                     continue
 
-            # Process the image
-            result = process_single_image(photo_id, s3_key, user_id)
+            # Process the image (skip backend notification for S3 events)
+            result = process_single_image(photo_id, s3_key, user_id, notify_backend=not is_s3_event)
             results.append(result)
 
         except Exception as e:

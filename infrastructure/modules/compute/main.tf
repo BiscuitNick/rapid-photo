@@ -133,6 +133,10 @@ resource "aws_ecs_task_definition" "backend" {
           value = var.sqs_queue_url
         },
         {
+          name  = "SQS_PHOTO_UPLOAD_QUEUE"
+          value = var.sqs_queue_url
+        },
+        {
           name  = "DB_SSL_MODE"
           value = "require"
         },
