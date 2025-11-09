@@ -14,7 +14,12 @@ def create_test_image(width: int = 1000, height: int = 1000, mode: str = 'RGB') 
     """Helper to create test image bytes."""
     img = Image.new(mode, (width, height), color='blue')
     buffer = io.BytesIO()
-    img.save(buffer, format='JPEG')
+    format_name = 'PNG' if 'A' in mode else 'JPEG'
+    save_img = img
+    if format_name == 'JPEG' and img.mode not in ('RGB', 'L'):
+        save_img = img.convert('RGB')
+
+    save_img.save(buffer, format=format_name)
     return buffer.getvalue()
 
 

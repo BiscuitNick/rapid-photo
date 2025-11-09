@@ -5,16 +5,19 @@ Tests for webp_converter module
 import io
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageChops
 
 from src.webp_converter import convert_to_webp, create_webp_renditions
 
 
 def create_test_image(width: int = 1920, height: int = 1080) -> bytes:
-    """Helper to create test image bytes."""
-    img = Image.new('RGB', (width, height), color='red')
+    """Helper to create test image bytes with meaningful detail."""
+    gradient_x = Image.linear_gradient('L').resize((width, height))
+    gradient_y = Image.linear_gradient('L').transpose(Image.Transpose.ROTATE_90).resize((width, height))
+    gradient_mix = ImageChops.add_modulo(gradient_x, gradient_y)
+    img = Image.merge('RGB', (gradient_x, gradient_y, gradient_mix))
     buffer = io.BytesIO()
-    img.save(buffer, format='JPEG')
+    img.save(buffer, format='JPEG', quality=90)
     return buffer.getvalue()
 
 

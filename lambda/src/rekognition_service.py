@@ -8,7 +8,7 @@ from typing import Dict, List
 import boto3
 from botocore.exceptions import ClientError
 
-from config import (
+from .config import (
     AWS_REGION,
     REKOGNITION_MAX_LABELS,
     REKOGNITION_MIN_CONFIDENCE,

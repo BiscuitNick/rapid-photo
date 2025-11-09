@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 import boto3
 
-from config import AWS_REGION
+from .config import AWS_REGION
 
 logger = logging.getLogger(__name__)
 
