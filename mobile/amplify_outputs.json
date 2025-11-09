@@ -1,0 +1,62 @@
+{
+  "auth": {
+    "user_pool_id": "us-east-1_H2cxGDTU6",
+    "aws_region": "us-east-1",
+    "user_pool_client_id": "7dt8tb6tn7hi9lvbiuq85nffrj",
+    "identity_pool_id": "us-east-1:41cb34c7-86de-4eb2-9e65-931757c809e4",
+    "mfa_methods": [],
+    "standard_required_attributes": [
+      "email"
+    ],
+    "username_attributes": [
+      "email"
+    ],
+    "user_verification_types": [
+      "email"
+    ],
+    "groups": [],
+    "mfa_configuration": "NONE",
+    "password_policy": {
+      "min_length": 8,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_symbols": true,
+      "require_uppercase": true
+    },
+    "unauthenticated_identities_enabled": true
+  },
+  "storage": {
+    "aws_region": "us-east-1",
+    "bucket_name": "amplify-rapidphotoweb-nic-rapidphotouploadsbucketc-cvzqed1qst7p",
+    "buckets": [
+      {
+        "name": "rapidPhotoUploads",
+        "bucket_name": "amplify-rapidphotoweb-nic-rapidphotouploadsbucketc-cvzqed1qst7p",
+        "aws_region": "us-east-1",
+        "paths": {
+          "originals/${cognito-identity.amazonaws.com:sub}/*": {
+            "entity_identity": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "thumbnails/${cognito-identity.amazonaws.com:sub}/*": {
+            "entity_identity": [
+              "get",
+              "list"
+            ]
+          },
+          "processed/${cognito-identity.amazonaws.com:sub}/*": {
+            "entity_identity": [
+              "get",
+              "list"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "version": "1.4"
+}

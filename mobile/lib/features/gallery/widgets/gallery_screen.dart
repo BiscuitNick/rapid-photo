@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rapid_photo_mobile/features/gallery/models/gallery_state.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/photo_list_item.dart';
 import 'package:rapid_photo_mobile/features/gallery/providers/gallery_notifier.dart';
 import 'package:rapid_photo_mobile/features/gallery/widgets/photo_detail_screen.dart';

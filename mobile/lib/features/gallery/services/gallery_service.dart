@@ -15,7 +15,10 @@ class GalleryService {
     required Dio dio,
     required AmplifyAuthService authService,
   })  : _dio = dio,
-        _authService = authService;
+        _authService = authService {
+    // Add auth interceptor to automatically include JWT tokens
+    _dio.interceptors.add(_AuthInterceptor(authService));
+  }
 
   /// Get paginated photos for the current user
   Future<PagedPhotosResponse> getPhotos({
@@ -25,11 +28,6 @@ class GalleryService {
     String? sortDirection,
   }) async {
     try {
-      final token = await _authService.getJwtToken();
-      if (token == null) {
-        throw Exception('Not authenticated');
-      }
-
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/v1/photos',
         queryParameters: {
@@ -38,9 +36,6 @@ class GalleryService {
           if (sortBy != null) 'sortBy': sortBy,
           if (sortDirection != null) 'sortDirection': sortDirection,
         },
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-        ),
       );
 
       return PagedPhotosResponse.fromJson(response.data!);
@@ -57,11 +52,6 @@ class GalleryService {
     int size = 20,
   }) async {
     try {
-      final token = await _authService.getJwtToken();
-      if (token == null) {
-        throw Exception('Not authenticated');
-      }
-
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/v1/photos/search',
         queryParameters: {
@@ -69,9 +59,6 @@ class GalleryService {
           'page': page,
           'size': size,
         },
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-        ),
       );
 
       return PagedPhotosResponse.fromJson(response.data!);
@@ -84,16 +71,8 @@ class GalleryService {
   /// Get a single photo by ID
   Future<PhotoResponse> getPhoto(String photoId) async {
     try {
-      final token = await _authService.getJwtToken();
-      if (token == null) {
-        throw Exception('Not authenticated');
-      }
-
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/v1/photos/$photoId',
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-        ),
       );
 
       return PhotoResponse.fromJson(response.data!);
@@ -106,17 +85,7 @@ class GalleryService {
   /// Delete a photo
   Future<void> deletePhoto(String photoId) async {
     try {
-      final token = await _authService.getJwtToken();
-      if (token == null) {
-        throw Exception('Not authenticated');
-      }
-
-      await _dio.delete(
-        '/api/v1/photos/$photoId',
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-        ),
-      );
+      await _dio.delete('/api/v1/photos/$photoId');
 
       _logger.i('Photo $photoId deleted successfully');
     } catch (e) {
@@ -131,27 +100,38 @@ class GalleryService {
     String? versionType,
   }) async {
     try {
-      final token = await _authService.getJwtToken();
-      if (token == null) {
-        throw Exception('Not authenticated');
-      }
-
       final path = versionType != null
           ? '/api/v1/photos/$photoId/download/$versionType'
           : '/api/v1/photos/$photoId/download';
 
-      final response = await _dio.get<Map<String, dynamic>>(
-        path,
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-        ),
-      );
+      final response = await _dio.get<Map<String, dynamic>>(path);
 
       return response.data!['url'] as String;
     } catch (e) {
       _logger.e('Failed to get download URL for photo $photoId: $e');
       rethrow;
     }
+  }
+}
+
+/// Dio interceptor for adding authentication token
+class _AuthInterceptor extends Interceptor {
+  final AmplifyAuthService _authService;
+
+  _AuthInterceptor(this._authService);
+
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    // Add JWT token to headers for API requests
+    final token = await _authService.getJwtToken();
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+
+    handler.next(options);
   }
 }
 

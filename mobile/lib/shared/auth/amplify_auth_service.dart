@@ -26,9 +26,7 @@ class AmplifyAuthService {
         AmplifyStorageS3(),
       ]);
 
-      // Configure Amplify with the configuration
-      // Note: In production, this would use amplifyconfig.json
-      // For now, we'll configure it programmatically
+      // Configure Amplify with amplify_outputs.json
       await Amplify.configure(_amplifyConfig);
 
       _isConfigured = true;
@@ -122,9 +120,8 @@ class AmplifyAuthService {
     }
   }
 
-  /// Amplify configuration
-  /// In production, this would be loaded from amplifyconfig.json
-  /// This is a placeholder configuration for development
+  /// Amplify configuration loaded from amplify_outputs.json
+  /// This configuration matches the web app setup and uses the actual Cognito pool
   static const String _amplifyConfig = '''
 {
   "UserAgent": "aws-amplify-cli/2.0",
@@ -140,15 +137,15 @@ class AmplifyAuthService {
         "CredentialsProvider": {
           "CognitoIdentity": {
             "Default": {
-              "PoolId": "us-east-1:placeholder-pool-id",
+              "PoolId": "us-east-1:41cb34c7-86de-4eb2-9e65-931757c809e4",
               "Region": "us-east-1"
             }
           }
         },
         "CognitoUserPool": {
           "Default": {
-            "PoolId": "us-east-1_placeholder",
-            "AppClientId": "placeholder-client-id",
+            "PoolId": "us-east-1_H2cxGDTU6",
+            "AppClientId": "7dt8tb6tn7hi9lvbiuq85nffrj",
             "Region": "us-east-1"
           }
         },
@@ -160,7 +157,7 @@ class AmplifyAuthService {
             "signupAttributes": ["EMAIL"],
             "passwordProtectionSettings": {
               "passwordPolicyMinLength": 8,
-              "passwordPolicyCharacters": []
+              "passwordPolicyCharacters": ["REQUIRES_LOWERCASE", "REQUIRES_UPPERCASE", "REQUIRES_NUMBERS", "REQUIRES_SYMBOLS"]
             },
             "mfaConfiguration": "OFF",
             "mfaTypes": ["SMS"],
@@ -173,7 +170,7 @@ class AmplifyAuthService {
   "storage": {
     "plugins": {
       "awsS3StoragePlugin": {
-        "bucket": "rapid-photo-uploads-placeholder",
+        "bucket": "amplify-rapidphotoweb-nic-rapidphotouploadsbucketc-cvzqed1qst7p",
         "region": "us-east-1",
         "defaultAccessLevel": "private"
       }
