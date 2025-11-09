@@ -131,7 +131,7 @@ public class ConfirmUploadHandler {
         return ConfirmUploadResponse.builder()
                 .photoId(photo.getId())
                 .uploadId(photo.getUploadJobId())
-                .status(photo.getStatus())
+                .status(photo.getStatus() != null ? photo.getStatus().name() : null)
                 .message("Upload confirmed successfully. Photo is pending processing.")
                 .build();
     }

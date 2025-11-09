@@ -46,6 +46,10 @@ public class CacheConfig {
                 .maximumSize(10000) // Cache up to 10k URLs (adjust based on needs)
                 .recordStats()); // Enable statistics for monitoring
 
+        // CRITICAL: Enable async mode for reactive types (Mono/Flux)
+        // Required for @Cacheable to work with Project Reactor
+        cacheManager.setAsyncCacheMode(true);
+
         return cacheManager;
     }
 }

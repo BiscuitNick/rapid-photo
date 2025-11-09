@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
@@ -44,7 +45,8 @@ public class Photo {
     private Integer height;
 
     @Builder.Default
-    private String status = "PENDING_PROCESSING";  // Maps to photo_status ENUM
+    @Column(value = "status")
+    private PhotoStatus status = PhotoStatus.PENDING_PROCESSING;  // Maps to photo_status ENUM
 
     @CreatedDate
     private Instant createdAt;
@@ -78,7 +80,7 @@ public class Photo {
                 .fileName(uploadJob.getFileName())
                 .fileSize(uploadJob.getFileSize())
                 .mimeType(uploadJob.getMimeType())
-                .status("PENDING_PROCESSING")  // Explicitly set initial status
+                .status(PhotoStatus.PENDING_PROCESSING)  // Explicitly set initial status
                 .createdAt(Instant.now())  // Set creation timestamp
                 .build();
     }
@@ -87,14 +89,14 @@ public class Photo {
      * Start processing the photo.
      */
     public void startProcessing() {
-        this.status = "PROCESSING";
+        this.status = PhotoStatus.PROCESSING;
     }
 
     /**
      * Mark photo as ready after successful processing.
      */
     public void markReady(Integer width, Integer height) {
-        this.status = "READY";
+        this.status = PhotoStatus.READY;
         this.width = width;
         this.height = height;
         this.processedAt = Instant.now();
@@ -104,7 +106,7 @@ public class Photo {
      * Mark photo as failed with error message.
      */
     public void markFailed(String errorMessage) {
-        this.status = "FAILED";
+        this.status = PhotoStatus.FAILED;
         this.errorMessage = errorMessage;
     }
 
@@ -112,14 +114,14 @@ public class Photo {
      * Get status as enum.
      */
     public PhotoStatus getStatusEnum() {
-        return status != null ? PhotoStatus.valueOf(status) : null;
+        return status;
     }
 
     /**
      * Set status from enum.
      */
     public void setStatusEnum(PhotoStatus status) {
-        this.status = status != null ? status.name() : null;
+        this.status = status;
     }
 
     /**
@@ -150,13 +152,13 @@ public class Photo {
      * Check if photo is ready for viewing.
      */
     public boolean isReady() {
-        return "READY".equals(status);
+        return PhotoStatus.READY.equals(status);
     }
 
     /**
      * Check if photo processing failed.
      */
     public boolean hasFailed() {
-        return "FAILED".equals(status);
+        return PhotoStatus.FAILED.equals(status);
     }
 }

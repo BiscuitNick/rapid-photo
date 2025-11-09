@@ -90,7 +90,8 @@ management:
 logging:
   level:
     root: WARN
-    com.rapidphoto: WARN
+    com.rapidphoto: INFO  # Enable INFO logs to see cache activity
+    org.springframework.cache: DEBUG  # Enable cache framework debugging
     org.springframework.boot: WARN
     org.springframework.web: WARN
     org.springframework.context: WARN
@@ -234,7 +235,8 @@ management:
 logging:
   level:
     root: WARN
-    com.rapidphoto: WARN
+    com.rapidphoto: INFO  # Enable INFO logs to see cache activity
+    org.springframework.cache: DEBUG  # Enable cache framework debugging
     io.r2dbc.postgresql: WARN
     io.netty: WARN
     reactor.netty: WARN

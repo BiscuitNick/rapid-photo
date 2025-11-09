@@ -116,7 +116,7 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
                 photo.getUserId(),
                 photo.getUploadJobId(),
                 photo.getOriginalS3Key(),
-                photo.getStatus(),
+                photo.getStatus() != null ? photo.getStatus().name() : null,
                 photo.getFileName(),
                 photo.getFileSize(),
                 photo.getMimeType(),

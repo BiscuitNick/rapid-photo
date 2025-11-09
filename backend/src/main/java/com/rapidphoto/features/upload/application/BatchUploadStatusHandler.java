@@ -88,7 +88,7 @@ public class BatchUploadStatusHandler {
                 .uploadId(uploadJob.getId())
                 .fileName(uploadJob.getFileName())
                 .uploadJobStatus(uploadJob.getStatus())
-                .photoStatus(photo != null ? photo.getStatus() : null)
+                .photoStatus(photo != null && photo.getStatus() != null ? photo.getStatus().name() : null)
                 .photoId(photo != null ? photo.getId() : null)
                 .createdAt(uploadJob.getCreatedAt())
                 .confirmedAt(uploadJob.getConfirmedAt())
