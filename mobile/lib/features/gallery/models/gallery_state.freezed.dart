@@ -44,6 +44,12 @@ mixin _$GalleryState {
   /// Error message if any
   String? get error;
 
+  /// Whether in selection mode for deletion
+  bool get isSelectionMode;
+
+  /// Set of selected photo IDs
+  Set<String> get selectedPhotoIds;
+
   /// Create a copy of GalleryState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -75,7 +81,11 @@ mixin _$GalleryState {
                 other.isLoading == isLoading) &&
             (identical(other.isRefreshing, isRefreshing) ||
                 other.isRefreshing == isRefreshing) &&
-            (identical(other.error, error) || other.error == error));
+            (identical(other.error, error) || other.error == error) &&
+            (identical(other.isSelectionMode, isSelectionMode) ||
+                other.isSelectionMode == isSelectionMode) &&
+            const DeepCollectionEquality()
+                .equals(other.selectedPhotoIds, selectedPhotoIds));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -91,11 +101,13 @@ mixin _$GalleryState {
       sortDirection,
       isLoading,
       isRefreshing,
-      error);
+      error,
+      isSelectionMode,
+      const DeepCollectionEquality().hash(selectedPhotoIds));
 
   @override
   String toString() {
-    return 'GalleryState(photos: $photos, currentPage: $currentPage, hasMore: $hasMore, totalPhotos: $totalPhotos, filterTags: $filterTags, sortBy: $sortBy, sortDirection: $sortDirection, isLoading: $isLoading, isRefreshing: $isRefreshing, error: $error)';
+    return 'GalleryState(photos: $photos, currentPage: $currentPage, hasMore: $hasMore, totalPhotos: $totalPhotos, filterTags: $filterTags, sortBy: $sortBy, sortDirection: $sortDirection, isLoading: $isLoading, isRefreshing: $isRefreshing, error: $error, isSelectionMode: $isSelectionMode, selectedPhotoIds: $selectedPhotoIds)';
   }
 }
 
@@ -115,7 +127,9 @@ abstract mixin class $GalleryStateCopyWith<$Res> {
       String sortDirection,
       bool isLoading,
       bool isRefreshing,
-      String? error});
+      String? error,
+      bool isSelectionMode,
+      Set<String> selectedPhotoIds});
 }
 
 /// @nodoc
@@ -140,6 +154,8 @@ class _$GalleryStateCopyWithImpl<$Res> implements $GalleryStateCopyWith<$Res> {
     Object? isLoading = null,
     Object? isRefreshing = null,
     Object? error = freezed,
+    Object? isSelectionMode = null,
+    Object? selectedPhotoIds = null,
   }) {
     return _then(_self.copyWith(
       photos: null == photos
@@ -182,6 +198,14 @@ class _$GalleryStateCopyWithImpl<$Res> implements $GalleryStateCopyWith<$Res> {
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
+      isSelectionMode: null == isSelectionMode
+          ? _self.isSelectionMode
+          : isSelectionMode // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedPhotoIds: null == selectedPhotoIds
+          ? _self.selectedPhotoIds
+          : selectedPhotoIds // ignore: cast_nullable_to_non_nullable
+              as Set<String>,
     ));
   }
 }
@@ -289,7 +313,9 @@ extension GalleryStatePatterns on GalleryState {
             String sortDirection,
             bool isLoading,
             bool isRefreshing,
-            String? error)?
+            String? error,
+            bool isSelectionMode,
+            Set<String> selectedPhotoIds)?
         $default, {
     required TResult orElse(),
   }) {
@@ -306,7 +332,9 @@ extension GalleryStatePatterns on GalleryState {
             _that.sortDirection,
             _that.isLoading,
             _that.isRefreshing,
-            _that.error);
+            _that.error,
+            _that.isSelectionMode,
+            _that.selectedPhotoIds);
       case _:
         return orElse();
     }
@@ -337,7 +365,9 @@ extension GalleryStatePatterns on GalleryState {
             String sortDirection,
             bool isLoading,
             bool isRefreshing,
-            String? error)
+            String? error,
+            bool isSelectionMode,
+            Set<String> selectedPhotoIds)
         $default,
   ) {
     final _that = this;
@@ -353,7 +383,9 @@ extension GalleryStatePatterns on GalleryState {
             _that.sortDirection,
             _that.isLoading,
             _that.isRefreshing,
-            _that.error);
+            _that.error,
+            _that.isSelectionMode,
+            _that.selectedPhotoIds);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -383,7 +415,9 @@ extension GalleryStatePatterns on GalleryState {
             String sortDirection,
             bool isLoading,
             bool isRefreshing,
-            String? error)?
+            String? error,
+            bool isSelectionMode,
+            Set<String> selectedPhotoIds)?
         $default,
   ) {
     final _that = this;
@@ -399,7 +433,9 @@ extension GalleryStatePatterns on GalleryState {
             _that.sortDirection,
             _that.isLoading,
             _that.isRefreshing,
-            _that.error);
+            _that.error,
+            _that.isSelectionMode,
+            _that.selectedPhotoIds);
       case _:
         return null;
     }
@@ -419,9 +455,12 @@ class _GalleryState implements GalleryState {
       this.sortDirection = 'desc',
       this.isLoading = false,
       this.isRefreshing = false,
-      this.error})
+      this.error,
+      this.isSelectionMode = false,
+      final Set<String> selectedPhotoIds = const {}})
       : _photos = photos,
-        _filterTags = filterTags;
+        _filterTags = filterTags,
+        _selectedPhotoIds = selectedPhotoIds;
   factory _GalleryState.fromJson(Map<String, dynamic> json) =>
       _$GalleryStateFromJson(json);
 
@@ -487,6 +526,23 @@ class _GalleryState implements GalleryState {
   @override
   final String? error;
 
+  /// Whether in selection mode for deletion
+  @override
+  @JsonKey()
+  final bool isSelectionMode;
+
+  /// Set of selected photo IDs
+  final Set<String> _selectedPhotoIds;
+
+  /// Set of selected photo IDs
+  @override
+  @JsonKey()
+  Set<String> get selectedPhotoIds {
+    if (_selectedPhotoIds is EqualUnmodifiableSetView) return _selectedPhotoIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableSetView(_selectedPhotoIds);
+  }
+
   /// Create a copy of GalleryState
   /// with the given fields replaced by the non-null parameter values.
   @override
@@ -522,7 +578,11 @@ class _GalleryState implements GalleryState {
                 other.isLoading == isLoading) &&
             (identical(other.isRefreshing, isRefreshing) ||
                 other.isRefreshing == isRefreshing) &&
-            (identical(other.error, error) || other.error == error));
+            (identical(other.error, error) || other.error == error) &&
+            (identical(other.isSelectionMode, isSelectionMode) ||
+                other.isSelectionMode == isSelectionMode) &&
+            const DeepCollectionEquality()
+                .equals(other._selectedPhotoIds, _selectedPhotoIds));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -538,11 +598,13 @@ class _GalleryState implements GalleryState {
       sortDirection,
       isLoading,
       isRefreshing,
-      error);
+      error,
+      isSelectionMode,
+      const DeepCollectionEquality().hash(_selectedPhotoIds));
 
   @override
   String toString() {
-    return 'GalleryState(photos: $photos, currentPage: $currentPage, hasMore: $hasMore, totalPhotos: $totalPhotos, filterTags: $filterTags, sortBy: $sortBy, sortDirection: $sortDirection, isLoading: $isLoading, isRefreshing: $isRefreshing, error: $error)';
+    return 'GalleryState(photos: $photos, currentPage: $currentPage, hasMore: $hasMore, totalPhotos: $totalPhotos, filterTags: $filterTags, sortBy: $sortBy, sortDirection: $sortDirection, isLoading: $isLoading, isRefreshing: $isRefreshing, error: $error, isSelectionMode: $isSelectionMode, selectedPhotoIds: $selectedPhotoIds)';
   }
 }
 
@@ -564,7 +626,9 @@ abstract mixin class _$GalleryStateCopyWith<$Res>
       String sortDirection,
       bool isLoading,
       bool isRefreshing,
-      String? error});
+      String? error,
+      bool isSelectionMode,
+      Set<String> selectedPhotoIds});
 }
 
 /// @nodoc
@@ -590,6 +654,8 @@ class __$GalleryStateCopyWithImpl<$Res>
     Object? isLoading = null,
     Object? isRefreshing = null,
     Object? error = freezed,
+    Object? isSelectionMode = null,
+    Object? selectedPhotoIds = null,
   }) {
     return _then(_GalleryState(
       photos: null == photos
@@ -632,6 +698,14 @@ class __$GalleryStateCopyWithImpl<$Res>
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
+      isSelectionMode: null == isSelectionMode
+          ? _self.isSelectionMode
+          : isSelectionMode // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedPhotoIds: null == selectedPhotoIds
+          ? _self._selectedPhotoIds
+          : selectedPhotoIds // ignore: cast_nullable_to_non_nullable
+              as Set<String>,
     ));
   }
 }

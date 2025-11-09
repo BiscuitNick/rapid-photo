@@ -230,4 +230,94 @@ class GalleryNotifier extends _$GalleryNotifier {
       rethrow;
     }
   }
+
+  /// Toggle selection mode
+  void toggleSelectionMode() {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    state = AsyncData(
+      currentState.copyWith(
+        isSelectionMode: !currentState.isSelectionMode,
+        selectedPhotoIds: {}, // Clear selections when toggling
+      ),
+    );
+  }
+
+  /// Toggle photo selection
+  void togglePhotoSelection(String photoId) {
+    final currentState = state.value;
+    if (currentState == null || !currentState.isSelectionMode) return;
+
+    final selectedIds = Set<String>.from(currentState.selectedPhotoIds);
+    if (selectedIds.contains(photoId)) {
+      selectedIds.remove(photoId);
+    } else {
+      selectedIds.add(photoId);
+    }
+
+    state = AsyncData(
+      currentState.copyWith(selectedPhotoIds: selectedIds),
+    );
+  }
+
+  /// Select all photos
+  void selectAll() {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    final allPhotoIds = currentState.photos.map((photo) => photo.id).toSet();
+    state = AsyncData(
+      currentState.copyWith(selectedPhotoIds: allPhotoIds),
+    );
+  }
+
+  /// Clear all selections
+  void clearSelection() {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    state = AsyncData(
+      currentState.copyWith(selectedPhotoIds: {}),
+    );
+  }
+
+  /// Delete selected photos
+  Future<void> deleteSelectedPhotos() async {
+    final currentState = state.value;
+    if (currentState == null || currentState.selectedPhotoIds.isEmpty) return;
+
+    final photoIdsToDelete = List<String>.from(currentState.selectedPhotoIds);
+
+    try {
+      // Delete all selected photos
+      await Future.wait(
+        photoIdsToDelete.map((id) => _galleryService.deletePhoto(id)),
+      );
+
+      // Remove deleted photos from local state
+      final updatedPhotos = currentState.photos
+          .where((photo) => !photoIdsToDelete.contains(photo.id))
+          .toList();
+
+      state = AsyncData(
+        currentState.copyWith(
+          photos: updatedPhotos,
+          totalPhotos: currentState.totalPhotos - photoIdsToDelete.length,
+          selectedPhotoIds: {},
+          isSelectionMode: false, // Exit selection mode after deletion
+        ),
+      );
+
+      _logger.i('${photoIdsToDelete.length} photos deleted successfully');
+    } catch (e) {
+      _logger.e('Failed to delete selected photos: $e');
+      state = AsyncData(
+        currentState.copyWith(
+          error: e.toString(),
+        ),
+      );
+      rethrow;
+    }
+  }
 }

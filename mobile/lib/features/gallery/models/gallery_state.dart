@@ -37,6 +37,12 @@ abstract class GalleryState with _$GalleryState {
 
     /// Error message if any
     String? error,
+
+    /// Whether in selection mode for deletion
+    @Default(false) bool isSelectionMode,
+
+    /// Set of selected photo IDs
+    @Default({}) Set<String> selectedPhotoIds,
   }) = _GalleryState;
 
   factory GalleryState.fromJson(Map<String, dynamic> json) =>

@@ -36,7 +36,7 @@ final class GalleryNotifierProvider
   GalleryNotifier create() => GalleryNotifier();
 }
 
-String _$galleryNotifierHash() => r'ab7b587ddd0884771b1f1181ed206428a203b92b';
+String _$galleryNotifierHash() => r'1524a1c613a6974e493de64d7b1318fcf2df6276';
 
 /// Notifier for managing gallery state
 

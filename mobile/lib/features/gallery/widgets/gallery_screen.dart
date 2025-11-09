@@ -48,46 +48,110 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   Widget build(BuildContext context) {
     final galleryAsync = ref.watch(galleryProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gallery'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sort),
-            onPressed: () => _showSortOptions(context),
-            tooltip: 'Sort options',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search bar
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: SearchBarWidget(),
-          ),
-
-          // Gallery grid
-          Expanded(
-            child: galleryAsync.when(
-              data: (state) => _buildGalleryContent(state),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error, size: 64, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Error: $error'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => ref.invalidate(galleryProvider),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+    return galleryAsync.when(
+      data: (state) => Scaffold(
+        appBar: _buildAppBar(context, state),
+        body: Column(
+          children: [
+            // Search bar (hide in selection mode)
+            if (!state.isSelectionMode)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: SearchBarWidget(),
               ),
+
+            // Gallery grid
+            Expanded(
+              child: _buildGalleryContent(state),
             ),
+          ],
+        ),
+      ),
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Gallery')),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(title: const Text('Gallery')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(galleryProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, GalleryState state) {
+    if (state.isSelectionMode) {
+      return AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => ref.read(galleryProvider.notifier).toggleSelectionMode(),
+        ),
+        title: Text('${state.selectedPhotoIds.length} selected'),
+        actions: [
+          if (state.selectedPhotoIds.length < state.photos.length)
+            IconButton(
+              icon: const Icon(Icons.select_all),
+              onPressed: () => ref.read(galleryProvider.notifier).selectAll(),
+              tooltip: 'Select all',
+            ),
+          if (state.selectedPhotoIds.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () => _confirmDelete(context, state.selectedPhotoIds.length),
+              tooltip: 'Delete selected',
+            ),
+        ],
+      );
+    }
+
+    return AppBar(
+      title: const Text('Gallery'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.select_all),
+          onPressed: () => ref.read(galleryProvider.notifier).toggleSelectionMode(),
+          tooltip: 'Select photos',
+        ),
+        IconButton(
+          icon: const Icon(Icons.sort),
+          onPressed: () => _showSortOptions(context),
+          tooltip: 'Sort options',
+        ),
+      ],
+    );
+  }
+
+  void _confirmDelete(BuildContext context, int count) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Photos'),
+        content: Text('Are you sure you want to delete $count photo${count == 1 ? '' : 's'}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ref.read(galleryProvider.notifier).deleteSelectedPhotos();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -174,7 +238,21 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   final photo = state.photos[index];
                   return PhotoGridItem(
                     photo: photo,
-                    onTap: () => _navigateToDetail(context, photo.id),
+                    isSelectionMode: state.isSelectionMode,
+                    isSelected: state.selectedPhotoIds.contains(photo.id),
+                    onTap: () {
+                      if (state.isSelectionMode) {
+                        ref.read(galleryProvider.notifier).togglePhotoSelection(photo.id);
+                      } else {
+                        _navigateToDetail(context, photo.id);
+                      }
+                    },
+                    onLongPress: () {
+                      if (!state.isSelectionMode) {
+                        ref.read(galleryProvider.notifier).toggleSelectionMode();
+                        ref.read(galleryProvider.notifier).togglePhotoSelection(photo.id);
+                      }
+                    },
                   );
                 },
                 childCount: state.photos.length,
@@ -251,17 +329,24 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
 class PhotoGridItem extends StatelessWidget {
   final PhotoListItem photo;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool isSelectionMode;
+  final bool isSelected;
 
   const PhotoGridItem({
     super.key,
     required this.photo,
     required this.onTap,
+    this.onLongPress,
+    this.isSelectionMode = false,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -354,6 +439,43 @@ class PhotoGridItem extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+
+          // Selection overlay and indicator
+          if (isSelectionMode)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: isSelected ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected ? Colors.blue : Colors.transparent,
+                    width: 3,
+                  ),
+                ),
+              ),
+            ),
+
+          // Selection checkmark
+          if (isSelectionMode)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.blue : Colors.white,
+                  border: Border.all(
+                    color: isSelected ? Colors.blue : Colors.grey,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, size: 18, color: Colors.white)
+                    : null,
               ),
             ),
         ],

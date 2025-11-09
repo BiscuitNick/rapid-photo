@@ -24,6 +24,11 @@ _GalleryState _$GalleryStateFromJson(Map<String, dynamic> json) =>
       isLoading: json['isLoading'] as bool? ?? false,
       isRefreshing: json['isRefreshing'] as bool? ?? false,
       error: json['error'] as String?,
+      isSelectionMode: json['isSelectionMode'] as bool? ?? false,
+      selectedPhotoIds: (json['selectedPhotoIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toSet() ??
+          const {},
     );
 
 Map<String, dynamic> _$GalleryStateToJson(_GalleryState instance) =>
@@ -38,4 +43,6 @@ Map<String, dynamic> _$GalleryStateToJson(_GalleryState instance) =>
       'isLoading': instance.isLoading,
       'isRefreshing': instance.isRefreshing,
       'error': instance.error,
+      'isSelectionMode': instance.isSelectionMode,
+      'selectedPhotoIds': instance.selectedPhotoIds.toList(),
     };
