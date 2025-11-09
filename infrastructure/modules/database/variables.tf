@@ -51,9 +51,9 @@ variable "max_allocated_storage" {
 }
 
 variable "storage_iops" {
-  description = "IOPS for gp3 storage"
+  description = "IOPS for gp3 storage (null to use default, requires >= 400 GB to customize)"
   type        = number
-  default     = 3000
+  default     = null
 }
 
 variable "max_connections" {

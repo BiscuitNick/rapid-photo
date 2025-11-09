@@ -7,6 +7,8 @@ spring:
     url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}
     username: ${DB_USERNAME:rapidphoto}
     password: ${DB_PASSWORD:changeme}
+    properties:
+      sslMode: ${DB_SSL_MODE:disable}
     pool:
       initial-size: 10
       max-size: 20
@@ -23,7 +25,7 @@ spring:
     validate-on-migrate: true
     out-of-order: false
     # JDBC URL for Flyway (Flyway doesn't support R2DBC yet)
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}${DB_SSL_PARAMS:}
     user: ${DB_USERNAME:rapidphoto}
     password: ${DB_PASSWORD:changeme}
 
@@ -37,7 +39,7 @@ spring:
 
   # Data source for Flyway (JDBC)
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rapidphoto}${DB_SSL_PARAMS:}
     username: ${DB_USERNAME:rapidphoto}
     password: ${DB_PASSWORD:changeme}
     driver-class-name: org.postgresql.Driver

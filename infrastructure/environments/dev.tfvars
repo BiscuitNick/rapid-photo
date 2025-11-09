@@ -12,6 +12,7 @@ enable_flow_logs = false # Disable in dev to save costs
 db_instance_class           = "db.t4g.small"
 db_allocated_storage        = 20
 db_max_allocated_storage    = 100
+db_storage_iops             = null # Don't specify IOPS for small storage (<400 GB)
 db_backup_retention_period  = 1  # Minimal backups in dev
 db_multi_az                 = false # Single AZ in dev
 db_deletion_protection      = false

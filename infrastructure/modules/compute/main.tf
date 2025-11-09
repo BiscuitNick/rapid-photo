@@ -94,6 +94,12 @@ resource "aws_ecs_task_definition" "backend" {
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
 
+  # Use ARM64 (Graviton2) - 20% cheaper, better performance
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+
   container_definitions = jsonencode([
     {
       name      = "backend"
@@ -125,6 +131,10 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "SQS_QUEUE_URL"
           value = var.sqs_queue_url
+        },
+        {
+          name  = "DB_SSL_MODE"
+          value = "require"
         }
       ]
 
@@ -189,7 +199,7 @@ resource "aws_ecs_service" "backend" {
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [var.ecs_security_group_id]
-    assign_public_ip = false
+    assign_public_ip = true  # Required for default VPC (public subnets, no NAT Gateway)
   }
 
   load_balancer {
@@ -198,10 +208,8 @@ resource "aws_ecs_service" "backend" {
     container_port   = 8080
   }
 
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 100
-  }
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
 
   enable_execute_command = var.enable_ecs_exec
 
@@ -416,8 +424,8 @@ resource "aws_lambda_function" "image_processor" {
       ENVIRONMENT     = var.environment
       S3_BUCKET_NAME  = var.s3_bucket_name
       DB_SECRET_ARN   = var.db_secret_arn
-      AWS_REGION      = var.aws_region
       PYTHONUNBUFFERED = "1"
+      # AWS_REGION is automatically provided by Lambda runtime
     }
   }
 

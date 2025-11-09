@@ -105,6 +105,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "photos" {
     id     = "cleanup-incomplete-uploads"
     status = "Enabled"
 
+    filter {}
+
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
     }
@@ -125,6 +127,7 @@ resource "aws_s3_bucket_cors_configuration" "photos" {
 }
 
 # S3 Bucket Notification to SQS
+# Note: The SQS queue policy in the messaging module must exist before this notification
 resource "aws_s3_bucket_notification" "photo_upload" {
   bucket = aws_s3_bucket.photos.id
 
@@ -134,32 +137,6 @@ resource "aws_s3_bucket_notification" "photo_upload" {
     filter_prefix = "originals/"
     filter_suffix = ""
   }
-
-  depends_on = [aws_s3_bucket_policy.sqs_notification]
-}
-
-# Bucket policy to allow SQS notifications
-resource "aws_s3_bucket_policy" "sqs_notification" {
-  bucket = aws_s3_bucket.photos.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "s3.amazonaws.com"
-        }
-        Action   = "SQS:SendMessage"
-        Resource = var.sqs_queue_arn
-        Condition = {
-          ArnEquals = {
-            "aws:SourceArn" = aws_s3_bucket.photos.arn
-          }
-        }
-      }
-    ]
-  })
 }
 
 # CloudWatch Metrics for S3

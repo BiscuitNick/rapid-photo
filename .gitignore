@@ -97,3 +97,11 @@ bin/
 
 # Docker
 .docker/
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.tfstate.lock.info
+*.tfvars
+# But DO commit .terraform.lock.hcl (dependency lock file)

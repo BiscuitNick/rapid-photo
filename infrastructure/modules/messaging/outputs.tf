@@ -29,3 +29,8 @@ output "dlq_name" {
   description = "Name of the dead letter queue"
   value       = aws_sqs_queue.dlq.name
 }
+
+output "queue_policy_id" {
+  description = "ID of the SQS queue policy (for dependency management)"
+  value       = aws_sqs_queue_policy.image_processing.id
+}

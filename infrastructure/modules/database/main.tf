@@ -21,8 +21,9 @@ resource "aws_db_parameter_group" "postgres17" {
   family = "postgres17"
 
   parameter {
-    name  = "shared_preload_libraries"
-    value = "pg_stat_statements"
+    name         = "shared_preload_libraries"
+    value        = "pg_stat_statements"
+    apply_method = "pending-reboot" # Static parameter requires reboot
   }
 
   parameter {
@@ -36,8 +37,9 @@ resource "aws_db_parameter_group" "postgres17" {
   }
 
   parameter {
-    name  = "max_connections"
-    value = var.max_connections
+    name         = "max_connections"
+    value        = var.max_connections
+    apply_method = "pending-reboot" # Static parameter requires reboot
   }
 
   tags = {
@@ -84,7 +86,7 @@ resource "aws_db_instance" "main" {
   max_allocated_storage = var.max_allocated_storage
   storage_type          = "gp3"
   storage_encrypted     = true
-  iops                  = var.storage_iops
+  iops                  = var.storage_iops # Only specify if >= 400 GB or null for default
 
   db_name  = var.db_name
   username = var.db_username

@@ -72,9 +72,9 @@ variable "db_max_allocated_storage" {
 }
 
 variable "db_storage_iops" {
-  description = "IOPS for gp3 storage"
+  description = "IOPS for gp3 storage (null to use default, requires >= 400 GB to customize)"
   type        = number
-  default     = 3000
+  default     = null
 }
 
 variable "db_max_connections" {
