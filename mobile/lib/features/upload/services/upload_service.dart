@@ -7,13 +7,13 @@ import 'package:rapid_photo_mobile/shared/auth/amplify_auth_service.dart';
 
 /// Response from generate presigned URL endpoint
 class PresignedUrlResponse {
-  final String uploadJobId;
+  final String uploadId;  // Changed from uploadJobId to uploadId
   final String presignedUrl;
   final String s3Key;
   final DateTime expiresAt;
 
   PresignedUrlResponse({
-    required this.uploadJobId,
+    required this.uploadId,
     required this.presignedUrl,
     required this.s3Key,
     required this.expiresAt,
@@ -21,11 +21,25 @@ class PresignedUrlResponse {
 
   factory PresignedUrlResponse.fromJson(Map<String, dynamic> json) {
     return PresignedUrlResponse(
-      uploadJobId: json['uploadJobId'] as String,
+      uploadId: json['uploadId'].toString(),  // Convert UUID to String
       presignedUrl: json['presignedUrl'] as String,
       s3Key: json['s3Key'] as String,
-      expiresAt: DateTime.parse(json['expiresAt'] as String),
+      expiresAt: _parseDateTime(json['expiresAt']),
     );
+  }
+
+  // Backward compatibility getter
+  String get uploadJobId => uploadId;
+
+  /// Parse DateTime from either Unix timestamp or ISO string
+  static DateTime _parseDateTime(dynamic value) {
+    if (value is num) {
+      return DateTime.fromMillisecondsSinceEpoch((value * 1000).round());
+    }
+    if (value is String) {
+      return DateTime.parse(value);
+    }
+    throw ArgumentError('Invalid date format: $value');
   }
 }
 
@@ -119,14 +133,14 @@ class UploadService {
 
   /// Confirm upload completion
   Future<void> confirmUpload({
-    required String uploadJobId,
+    required String uploadId,
     required String etag,
   }) async {
     try {
-      _logger.d('Confirming upload for job $uploadJobId');
+      _logger.d('Confirming upload for job $uploadId');
 
       await _dio.post(
-        '/uploads/$uploadJobId/confirm',
+        '/uploads/$uploadId/confirm',
         data: {
           'etag': etag,
         },

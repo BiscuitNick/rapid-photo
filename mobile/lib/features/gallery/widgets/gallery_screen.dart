@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/gallery_state.dart';
 import 'package:rapid_photo_mobile/features/gallery/models/photo_list_item.dart';
+import 'package:rapid_photo_mobile/features/gallery/models/photo_status.dart';
 import 'package:rapid_photo_mobile/features/gallery/providers/gallery_notifier.dart';
 import 'package:rapid_photo_mobile/features/gallery/widgets/photo_detail_screen.dart';
 import 'package:rapid_photo_mobile/features/gallery/widgets/search_bar_widget.dart';
@@ -267,24 +268,46 @@ class PhotoGridItem extends StatelessWidget {
           // Thumbnail image
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: CachedNetworkImage(
-              imageUrl: photo.thumbnailUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.grey[300],
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey[300],
-                child: const Icon(Icons.error),
-              ),
-            ),
+            child: photo.thumbnailUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: photo.thumbnailUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.error),
+                    ),
+                  )
+                : Container(
+                    color: Colors.grey[300],
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          size: 48,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Processing...',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
 
           // Status overlay
-          if (photo.status.name != 'ready')
+          if (photo.status != PhotoStatus.ready)
             Positioned(
               top: 4,
               right: 4,
@@ -338,32 +361,28 @@ class PhotoGridItem extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(status) {
-    switch (status.name) {
-      case 'ready':
+  Color _getStatusColor(PhotoStatus status) {
+    switch (status) {
+      case PhotoStatus.ready:
         return Colors.green;
-      case 'processing':
-      case 'pendingProcessing':
+      case PhotoStatus.processing:
+      case PhotoStatus.pendingProcessing:
         return Colors.orange;
-      case 'failed':
+      case PhotoStatus.failed:
         return Colors.red;
-      default:
-        return Colors.grey;
     }
   }
 
-  String _getStatusLabel(status) {
-    switch (status.name) {
-      case 'ready':
+  String _getStatusLabel(PhotoStatus status) {
+    switch (status) {
+      case PhotoStatus.ready:
         return 'Ready';
-      case 'processing':
+      case PhotoStatus.processing:
         return 'Processing';
-      case 'pendingProcessing':
+      case PhotoStatus.pendingProcessing:
         return 'Pending';
-      case 'failed':
+      case PhotoStatus.failed:
         return 'Failed';
-      default:
-        return 'Unknown';
     }
   }
 }

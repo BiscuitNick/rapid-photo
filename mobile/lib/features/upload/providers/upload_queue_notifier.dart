@@ -182,7 +182,7 @@ class UploadQueueNotifier extends AsyncNotifier<UploadQueueState> {
 
       // Step 3: Confirm upload
       await _uploadService.confirmUpload(
-        uploadJobId: presignedResponse.uploadJobId,
+        uploadId: presignedResponse.uploadId,
         etag: etag,
       );
 

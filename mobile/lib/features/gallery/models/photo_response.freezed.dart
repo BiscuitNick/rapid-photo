@@ -25,8 +25,11 @@ mixin _$PhotoResponse {
   String? get thumbnailUrl;
   List<PhotoVersion> get versions;
   List<PhotoLabel> get labels;
+  @JsonKey(fromJson: _dateTimeFromEpochSeconds)
   DateTime get createdAt;
+  @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
   DateTime? get processedAt;
+  @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
   DateTime? get takenAt;
   String? get cameraMake;
   String? get cameraModel;
@@ -127,9 +130,10 @@ abstract mixin class $PhotoResponseCopyWith<$Res> {
       String? thumbnailUrl,
       List<PhotoVersion> versions,
       List<PhotoLabel> labels,
-      DateTime createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
       DateTime? processedAt,
-      DateTime? takenAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) DateTime? takenAt,
       String? cameraMake,
       String? cameraModel,
       double? gpsLatitude,
@@ -350,8 +354,10 @@ extension PhotoResponsePatterns on PhotoResponse {
             String? thumbnailUrl,
             List<PhotoVersion> versions,
             List<PhotoLabel> labels,
-            DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? processedAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? takenAt,
             String? cameraMake,
             String? cameraModel,
@@ -414,8 +420,10 @@ extension PhotoResponsePatterns on PhotoResponse {
             String? thumbnailUrl,
             List<PhotoVersion> versions,
             List<PhotoLabel> labels,
-            DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? processedAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? takenAt,
             String? cameraMake,
             String? cameraModel,
@@ -476,8 +484,10 @@ extension PhotoResponsePatterns on PhotoResponse {
             String? thumbnailUrl,
             List<PhotoVersion> versions,
             List<PhotoLabel> labels,
-            DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? processedAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? takenAt,
             String? cameraMake,
             String? cameraModel,
@@ -528,9 +538,9 @@ class _PhotoResponse implements PhotoResponse {
       this.thumbnailUrl,
       final List<PhotoVersion> versions = const [],
       final List<PhotoLabel> labels = const [],
-      required this.createdAt,
-      this.processedAt,
-      this.takenAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSeconds) required this.createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) this.processedAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) this.takenAt,
       this.cameraMake,
       this.cameraModel,
       this.gpsLatitude,
@@ -577,10 +587,13 @@ class _PhotoResponse implements PhotoResponse {
   }
 
   @override
+  @JsonKey(fromJson: _dateTimeFromEpochSeconds)
   final DateTime createdAt;
   @override
+  @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
   final DateTime? processedAt;
   @override
+  @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
   final DateTime? takenAt;
   @override
   final String? cameraMake;
@@ -691,9 +704,10 @@ abstract mixin class _$PhotoResponseCopyWith<$Res>
       String? thumbnailUrl,
       List<PhotoVersion> versions,
       List<PhotoLabel> labels,
-      DateTime createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
       DateTime? processedAt,
-      DateTime? takenAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) DateTime? takenAt,
       String? cameraMake,
       String? cameraModel,
       double? gpsLatitude,

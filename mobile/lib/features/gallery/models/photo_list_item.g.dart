@@ -11,17 +11,16 @@ _PhotoListItem _$PhotoListItemFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       fileName: json['fileName'] as String,
       status: $enumDecode(_$PhotoStatusEnumMap, json['status']),
-      thumbnailUrl: json['thumbnailUrl'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      originalUrl: json['originalUrl'] as String?,
       width: (json['width'] as num?)?.toInt(),
       height: (json['height'] as num?)?.toInt(),
       labels: (json['labels'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      takenAt: json['takenAt'] == null
-          ? null
-          : DateTime.parse(json['takenAt'] as String),
+      createdAt: _dateTimeFromEpochSeconds(json['createdAt']),
+      takenAt: _dateTimeFromEpochSecondsNullable(json['takenAt']),
     );
 
 Map<String, dynamic> _$PhotoListItemToJson(_PhotoListItem instance) =>
@@ -30,6 +29,7 @@ Map<String, dynamic> _$PhotoListItemToJson(_PhotoListItem instance) =>
       'fileName': instance.fileName,
       'status': _$PhotoStatusEnumMap[instance.status]!,
       'thumbnailUrl': instance.thumbnailUrl,
+      'originalUrl': instance.originalUrl,
       'width': instance.width,
       'height': instance.height,
       'labels': instance.labels,

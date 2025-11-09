@@ -23,9 +23,9 @@ abstract class PhotoResponse with _$PhotoResponse {
     String? thumbnailUrl,
     @Default([]) List<PhotoVersion> versions,
     @Default([]) List<PhotoLabel> labels,
-    required DateTime createdAt,
-    DateTime? processedAt,
-    DateTime? takenAt,
+    @JsonKey(fromJson: _dateTimeFromEpochSeconds) required DateTime createdAt,
+    @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) DateTime? processedAt,
+    @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) DateTime? takenAt,
     String? cameraMake,
     String? cameraModel,
     double? gpsLatitude,
@@ -34,4 +34,21 @@ abstract class PhotoResponse with _$PhotoResponse {
 
   factory PhotoResponse.fromJson(Map<String, dynamic> json) =>
       _$PhotoResponseFromJson(json);
+}
+
+/// Convert Unix epoch seconds (as number) to DateTime
+DateTime _dateTimeFromEpochSeconds(dynamic value) {
+  if (value is num) {
+    return DateTime.fromMillisecondsSinceEpoch((value * 1000).round());
+  }
+  if (value is String) {
+    return DateTime.parse(value);
+  }
+  throw ArgumentError('Invalid date format: $value');
+}
+
+/// Convert Unix epoch seconds (as number) to nullable DateTime
+DateTime? _dateTimeFromEpochSecondsNullable(dynamic value) {
+  if (value == null) return null;
+  return _dateTimeFromEpochSeconds(value);
 }

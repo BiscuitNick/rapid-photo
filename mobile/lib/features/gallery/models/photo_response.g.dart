@@ -25,13 +25,9 @@ _PhotoResponse _$PhotoResponseFromJson(Map<String, dynamic> json) =>
               ?.map((e) => PhotoLabel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      processedAt: json['processedAt'] == null
-          ? null
-          : DateTime.parse(json['processedAt'] as String),
-      takenAt: json['takenAt'] == null
-          ? null
-          : DateTime.parse(json['takenAt'] as String),
+      createdAt: _dateTimeFromEpochSeconds(json['createdAt']),
+      processedAt: _dateTimeFromEpochSecondsNullable(json['processedAt']),
+      takenAt: _dateTimeFromEpochSecondsNullable(json['takenAt']),
       cameraMake: json['cameraMake'] as String?,
       cameraModel: json['cameraModel'] as String?,
       gpsLatitude: (json['gpsLatitude'] as num?)?.toDouble(),

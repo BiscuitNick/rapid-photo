@@ -17,11 +17,14 @@ mixin _$PhotoListItem {
   String get id;
   String get fileName;
   PhotoStatus get status;
-  String get thumbnailUrl;
+  String? get thumbnailUrl;
+  String? get originalUrl;
   int? get width;
   int? get height;
   List<String> get labels;
+  @JsonKey(fromJson: _dateTimeFromEpochSeconds)
   DateTime get createdAt;
+  @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
   DateTime? get takenAt;
 
   /// Create a copy of PhotoListItem
@@ -46,6 +49,8 @@ mixin _$PhotoListItem {
             (identical(other.status, status) || other.status == status) &&
             (identical(other.thumbnailUrl, thumbnailUrl) ||
                 other.thumbnailUrl == thumbnailUrl) &&
+            (identical(other.originalUrl, originalUrl) ||
+                other.originalUrl == originalUrl) &&
             (identical(other.width, width) || other.width == width) &&
             (identical(other.height, height) || other.height == height) &&
             const DeepCollectionEquality().equals(other.labels, labels) &&
@@ -62,6 +67,7 @@ mixin _$PhotoListItem {
       fileName,
       status,
       thumbnailUrl,
+      originalUrl,
       width,
       height,
       const DeepCollectionEquality().hash(labels),
@@ -70,7 +76,7 @@ mixin _$PhotoListItem {
 
   @override
   String toString() {
-    return 'PhotoListItem(id: $id, fileName: $fileName, status: $status, thumbnailUrl: $thumbnailUrl, width: $width, height: $height, labels: $labels, createdAt: $createdAt, takenAt: $takenAt)';
+    return 'PhotoListItem(id: $id, fileName: $fileName, status: $status, thumbnailUrl: $thumbnailUrl, originalUrl: $originalUrl, width: $width, height: $height, labels: $labels, createdAt: $createdAt, takenAt: $takenAt)';
   }
 }
 
@@ -84,12 +90,13 @@ abstract mixin class $PhotoListItemCopyWith<$Res> {
       {String id,
       String fileName,
       PhotoStatus status,
-      String thumbnailUrl,
+      String? thumbnailUrl,
+      String? originalUrl,
       int? width,
       int? height,
       List<String> labels,
-      DateTime createdAt,
-      DateTime? takenAt});
+      @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) DateTime? takenAt});
 }
 
 /// @nodoc
@@ -108,7 +115,8 @@ class _$PhotoListItemCopyWithImpl<$Res>
     Object? id = null,
     Object? fileName = null,
     Object? status = null,
-    Object? thumbnailUrl = null,
+    Object? thumbnailUrl = freezed,
+    Object? originalUrl = freezed,
     Object? width = freezed,
     Object? height = freezed,
     Object? labels = null,
@@ -128,10 +136,14 @@ class _$PhotoListItemCopyWithImpl<$Res>
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
               as PhotoStatus,
-      thumbnailUrl: null == thumbnailUrl
+      thumbnailUrl: freezed == thumbnailUrl
           ? _self.thumbnailUrl
           : thumbnailUrl // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
+      originalUrl: freezed == originalUrl
+          ? _self.originalUrl
+          : originalUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       width: freezed == width
           ? _self.width
           : width // ignore: cast_nullable_to_non_nullable
@@ -253,11 +265,13 @@ extension PhotoListItemPatterns on PhotoListItem {
             String id,
             String fileName,
             PhotoStatus status,
-            String thumbnailUrl,
+            String? thumbnailUrl,
+            String? originalUrl,
             int? width,
             int? height,
             List<String> labels,
-            DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? takenAt)?
         $default, {
     required TResult orElse(),
@@ -270,6 +284,7 @@ extension PhotoListItemPatterns on PhotoListItem {
             _that.fileName,
             _that.status,
             _that.thumbnailUrl,
+            _that.originalUrl,
             _that.width,
             _that.height,
             _that.labels,
@@ -299,11 +314,13 @@ extension PhotoListItemPatterns on PhotoListItem {
             String id,
             String fileName,
             PhotoStatus status,
-            String thumbnailUrl,
+            String? thumbnailUrl,
+            String? originalUrl,
             int? width,
             int? height,
             List<String> labels,
-            DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? takenAt)
         $default,
   ) {
@@ -315,6 +332,7 @@ extension PhotoListItemPatterns on PhotoListItem {
             _that.fileName,
             _that.status,
             _that.thumbnailUrl,
+            _that.originalUrl,
             _that.width,
             _that.height,
             _that.labels,
@@ -343,11 +361,13 @@ extension PhotoListItemPatterns on PhotoListItem {
             String id,
             String fileName,
             PhotoStatus status,
-            String thumbnailUrl,
+            String? thumbnailUrl,
+            String? originalUrl,
             int? width,
             int? height,
             List<String> labels,
-            DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+            @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
             DateTime? takenAt)?
         $default,
   ) {
@@ -359,6 +379,7 @@ extension PhotoListItemPatterns on PhotoListItem {
             _that.fileName,
             _that.status,
             _that.thumbnailUrl,
+            _that.originalUrl,
             _that.width,
             _that.height,
             _that.labels,
@@ -377,12 +398,13 @@ class _PhotoListItem implements PhotoListItem {
       {required this.id,
       required this.fileName,
       required this.status,
-      required this.thumbnailUrl,
+      this.thumbnailUrl,
+      this.originalUrl,
       this.width,
       this.height,
       final List<String> labels = const [],
-      required this.createdAt,
-      this.takenAt})
+      @JsonKey(fromJson: _dateTimeFromEpochSeconds) required this.createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) this.takenAt})
       : _labels = labels;
   factory _PhotoListItem.fromJson(Map<String, dynamic> json) =>
       _$PhotoListItemFromJson(json);
@@ -394,7 +416,9 @@ class _PhotoListItem implements PhotoListItem {
   @override
   final PhotoStatus status;
   @override
-  final String thumbnailUrl;
+  final String? thumbnailUrl;
+  @override
+  final String? originalUrl;
   @override
   final int? width;
   @override
@@ -409,8 +433,10 @@ class _PhotoListItem implements PhotoListItem {
   }
 
   @override
+  @JsonKey(fromJson: _dateTimeFromEpochSeconds)
   final DateTime createdAt;
   @override
+  @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable)
   final DateTime? takenAt;
 
   /// Create a copy of PhotoListItem
@@ -439,6 +465,8 @@ class _PhotoListItem implements PhotoListItem {
             (identical(other.status, status) || other.status == status) &&
             (identical(other.thumbnailUrl, thumbnailUrl) ||
                 other.thumbnailUrl == thumbnailUrl) &&
+            (identical(other.originalUrl, originalUrl) ||
+                other.originalUrl == originalUrl) &&
             (identical(other.width, width) || other.width == width) &&
             (identical(other.height, height) || other.height == height) &&
             const DeepCollectionEquality().equals(other._labels, _labels) &&
@@ -455,6 +483,7 @@ class _PhotoListItem implements PhotoListItem {
       fileName,
       status,
       thumbnailUrl,
+      originalUrl,
       width,
       height,
       const DeepCollectionEquality().hash(_labels),
@@ -463,7 +492,7 @@ class _PhotoListItem implements PhotoListItem {
 
   @override
   String toString() {
-    return 'PhotoListItem(id: $id, fileName: $fileName, status: $status, thumbnailUrl: $thumbnailUrl, width: $width, height: $height, labels: $labels, createdAt: $createdAt, takenAt: $takenAt)';
+    return 'PhotoListItem(id: $id, fileName: $fileName, status: $status, thumbnailUrl: $thumbnailUrl, originalUrl: $originalUrl, width: $width, height: $height, labels: $labels, createdAt: $createdAt, takenAt: $takenAt)';
   }
 }
 
@@ -479,12 +508,13 @@ abstract mixin class _$PhotoListItemCopyWith<$Res>
       {String id,
       String fileName,
       PhotoStatus status,
-      String thumbnailUrl,
+      String? thumbnailUrl,
+      String? originalUrl,
       int? width,
       int? height,
       List<String> labels,
-      DateTime createdAt,
-      DateTime? takenAt});
+      @JsonKey(fromJson: _dateTimeFromEpochSeconds) DateTime createdAt,
+      @JsonKey(fromJson: _dateTimeFromEpochSecondsNullable) DateTime? takenAt});
 }
 
 /// @nodoc
@@ -503,7 +533,8 @@ class __$PhotoListItemCopyWithImpl<$Res>
     Object? id = null,
     Object? fileName = null,
     Object? status = null,
-    Object? thumbnailUrl = null,
+    Object? thumbnailUrl = freezed,
+    Object? originalUrl = freezed,
     Object? width = freezed,
     Object? height = freezed,
     Object? labels = null,
@@ -523,10 +554,14 @@ class __$PhotoListItemCopyWithImpl<$Res>
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
               as PhotoStatus,
-      thumbnailUrl: null == thumbnailUrl
+      thumbnailUrl: freezed == thumbnailUrl
           ? _self.thumbnailUrl
           : thumbnailUrl // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
+      originalUrl: freezed == originalUrl
+          ? _self.originalUrl
+          : originalUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       width: freezed == width
           ? _self.width
           : width // ignore: cast_nullable_to_non_nullable
