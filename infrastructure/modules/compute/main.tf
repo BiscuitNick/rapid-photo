@@ -135,6 +135,18 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "DB_SSL_MODE"
           value = "require"
+        },
+        {
+          name  = "LAMBDA_SECRET"
+          value = "rapid-photo-lambda-secret-change-in-production"
+        },
+        {
+          name  = "COGNITO_ISSUER_URI"
+          value = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_H2cxGDTU6"
+        },
+        {
+          name  = "COGNITO_JWK_SET_URI"
+          value = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_H2cxGDTU6/.well-known/jwks.json"
         }
       ]
 
@@ -421,18 +433,22 @@ resource "aws_lambda_function" "image_processor" {
 
   environment {
     variables = {
-      ENVIRONMENT     = var.environment
-      S3_BUCKET_NAME  = var.s3_bucket_name
-      DB_SECRET_ARN   = var.db_secret_arn
+      ENVIRONMENT      = var.environment
+      S3_BUCKET_NAME   = var.s3_bucket_name
+      DB_SECRET_ARN    = var.db_secret_arn
+      BACKEND_URL      = var.backend_url
+      LAMBDA_SECRET    = var.lambda_secret
       PYTHONUNBUFFERED = "1"
       # AWS_REGION is automatically provided by Lambda runtime
     }
   }
 
-  vpc_config {
-    subnet_ids         = var.private_subnet_ids
-    security_group_ids = [var.lambda_security_group_id]
-  }
+  # VPC config removed - Lambda no longer needs database access
+  # and requires internet access for S3, Rekognition, and backend HTTP calls
+  # vpc_config {
+  #   subnet_ids         = var.private_subnet_ids
+  #   security_group_ids = [var.lambda_security_group_id]
+  # }
 
   tracing_config {
     mode = "Active"

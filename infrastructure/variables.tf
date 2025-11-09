@@ -228,13 +228,20 @@ variable "ecs_enable_exec" {
 variable "lambda_package_path" {
   description = "Path to Lambda deployment package"
   type        = string
-  default     = "../lambda/dist/lambda.zip"
+  default     = "../lambda/lambda-package.zip"
 }
 
 variable "lambda_reserved_concurrency" {
   description = "Reserved concurrent executions for Lambda"
   type        = number
   default     = 100
+}
+
+variable "lambda_secret" {
+  description = "Shared secret for Lambda->Backend authentication"
+  type        = string
+  sensitive   = true
+  default     = "rapid-photo-lambda-secret-change-in-production"
 }
 
 # ===== Observability Variables =====

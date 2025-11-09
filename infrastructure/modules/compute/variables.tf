@@ -99,6 +99,17 @@ variable "lambda_reserved_concurrency" {
   default     = 100
 }
 
+variable "backend_url" {
+  description = "Backend API URL for Lambda callbacks"
+  type        = string
+}
+
+variable "lambda_secret" {
+  description = "Shared secret for Lambda->Backend authentication"
+  type        = string
+  sensitive   = true
+}
+
 # Integration Variables
 variable "s3_bucket_name" {
   description = "S3 bucket name for photo storage"

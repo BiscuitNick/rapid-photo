@@ -8,7 +8,7 @@ from typing import BinaryIO, Tuple
 
 from PIL import Image, ImageOps
 
-from .config import THUMBNAIL_SIZE
+from config import THUMBNAIL_SIZE
 
 logger = logging.getLogger(__name__)
 

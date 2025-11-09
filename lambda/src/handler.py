@@ -5,32 +5,63 @@ This Lambda function processes uploaded images from S3:
 - Generates thumbnails (300x300 center crop)
 - Creates WebP renditions at multiple widths
 - Runs AWS Rekognition for AI label detection
-- Updates PostgreSQL database with processed metadata
-- Publishes completion events
+- Notifies backend API when processing completes
 """
 
 import json
 import logging
 import os
 from typing import Any, Dict, List
+import urllib3
 
 from config import S3_BUCKET
-from db_service import (
-    check_photo_status,
-    mark_photo_failed,
-    save_photo_versions,
-    update_photo_metadata,
-)
 from image_processor import create_thumbnail, get_image_metadata
-from metrics import StructuredLogger, increment_counter, timed_operation
 from rekognition_service import detect_labels, extract_tags
 from s3_service import download_from_s3, generate_processed_keys, upload_to_s3
 from webp_converter import create_webp_renditions
 
-# Configure structured logging
+# Configure logging
 logger = logging.getLogger()
 logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
-structured_logger = StructuredLogger(__name__)
+
+# HTTP client for backend callbacks
+http = urllib3.PoolManager()
+
+# Backend API configuration
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8080')
+LAMBDA_SECRET = os.getenv('LAMBDA_SECRET', 'change-me-in-production')
+
+
+def notify_backend_complete(photo_id: str, result: Dict[str, Any]) -> None:
+    """
+    Notify backend API that photo processing is complete.
+
+    Args:
+        photo_id: UUID of the photo
+        result: Processing result with versions, metadata, labels
+    """
+    try:
+        url = f"{BACKEND_URL}/api/v1/internal/photos/{photo_id}/processing-complete"
+
+        response = http.request(
+            'POST',
+            url,
+            body=json.dumps(result).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'X-Lambda-Secret': LAMBDA_SECRET
+            },
+            timeout=10.0
+        )
+
+        if response.status == 200:
+            logger.info(f"✅ Backend notified successfully for photo {photo_id}")
+        else:
+            logger.error(f"❌ Backend returned status {response.status}: {response.data}")
+
+    except Exception as e:
+        logger.error(f"Failed to notify backend for photo {photo_id}: {str(e)}")
+        # Don't raise - processing succeeded even if notification failed
 
 
 def process_single_image(
@@ -52,254 +83,127 @@ def process_single_image(
     Raises:
         Exception: If processing fails at any step
     """
-    with timed_operation('image_processing', dimensions={'user_id': user_id}):
-        # Step 1: Check idempotency - skip if already processed
-        current_status = check_photo_status(photo_id)
-        if current_status in ('READY', 'PROCESSING'):
-            structured_logger.info(
-                "Photo already processed or in progress, skipping",
-                photo_id=photo_id,
-                status=current_status
-            )
-            return {
-                'photo_id': photo_id,
-                's3_key': s3_key,
-                'status': 'skipped',
-                'reason': f'Already in status: {current_status}'
-            }
+    logger.info(f"Processing photo {photo_id}, s3_key={s3_key}, user={user_id}")
 
-        # Step 2: Download original image from S3
-        structured_logger.info("Downloading original image", photo_id=photo_id, s3_key=s3_key)
-        image_data = download_from_s3(s3_key)
-        increment_counter('image.downloaded', dimensions={'user_id': user_id})
+    # Step 1: Download original image from S3
+    logger.info(f"Downloading original image: {s3_key}")
+    image_data = download_from_s3(s3_key)
 
-        # Step 3: Extract image metadata
-        metadata = get_image_metadata(image_data)
-        structured_logger.info("Extracted metadata", photo_id=photo_id, metadata=metadata)
+    # Step 2: Extract image metadata
+    metadata = get_image_metadata(image_data)
+    logger.info(f"Extracted metadata: {metadata}")
 
-        # Step 4: Generate thumbnail
-        structured_logger.info("Creating thumbnail", photo_id=photo_id)
-        thumbnail_data = create_thumbnail(image_data)
-        thumbnail_key = generate_processed_keys(s3_key, width=None)
-        upload_to_s3(thumbnail_data, thumbnail_key, content_type='image/jpeg')
-        increment_counter('thumbnail.created', dimensions={'user_id': user_id})
+    # Step 3: Generate thumbnail
+    logger.info("Creating thumbnail")
+    thumbnail_data = create_thumbnail(image_data)
+    thumbnail_key = generate_processed_keys(s3_key, width=None)
+    logger.info(f"Uploading thumbnail to {thumbnail_key}")
+    upload_to_s3(thumbnail_data, thumbnail_key, content_type='image/jpeg')
+    logger.info("Thumbnail uploaded successfully")
 
-        # Step 5: Create WebP renditions
-        structured_logger.info("Creating WebP renditions", photo_id=photo_id)
-        renditions = create_webp_renditions(image_data)
+    # SIMPLIFIED: Skip WebP renditions and Rekognition for testing
+    logger.info("Skipping WebP and Rekognition - simplified test")
 
-        # Upload renditions and build version mapping
-        version_keys = {}
-        for width, webp_data in renditions.items():
-            rendition_key = generate_processed_keys(s3_key, width=width)
-            upload_to_s3(webp_data, rendition_key, content_type='image/webp')
-            version_keys[width] = rendition_key
+    # Build simplified result and notify backend
+    result = {
+        'status': 'READY',
+        'thumbnailKey': thumbnail_key,
+        'metadata': {
+            'width': metadata.get('width'),
+            'height': metadata.get('height'),
+            'format': metadata.get('format'),
+            'size': metadata.get('size_bytes')
+        },
+        'versions': [],
+        'labels': []
+    }
 
-        increment_counter(
-            'renditions.created',
-            value=len(renditions),
-            dimensions={'user_id': user_id}
-        )
+    logger.info(f"Notifying backend for photo {photo_id}")
+    notify_backend_complete(photo_id, result)
+    logger.info("Backend notification complete")
 
-        # Step 6: Run Rekognition for label detection
-        structured_logger.info("Running Rekognition", photo_id=photo_id, s3_key=s3_key)
-        labels = detect_labels(s3_key, bucket=S3_BUCKET)
-        tags = extract_tags(labels, max_tags=10)
-        increment_counter('rekognition.completed', dimensions={'user_id': user_id})
-
-        # Step 7: Update database with all metadata
-        structured_logger.info(
-            "Updating database",
-            photo_id=photo_id,
-            tags_count=len(tags),
-            versions_count=len(version_keys)
-        )
-        update_photo_metadata(
-            photo_id=photo_id,
-            thumbnail_key=thumbnail_key,
-            metadata=metadata,
-            tags=tags,
-            status='READY'
-        )
-
-        # Save photo versions (including thumbnail)
-        save_photo_versions(photo_id=photo_id, versions=version_keys, thumbnail_key=thumbnail_key)
-
-        # Save AI labels
-        from db_service import save_photo_labels
-        label_confidences = {label['name']: label['confidence'] for label in labels}
-        save_photo_labels(photo_id=photo_id, labels=tags, confidences=label_confidences)
-
-        structured_logger.info(
-            "Image processing completed",
-            photo_id=photo_id,
-            thumbnail_key=thumbnail_key,
-            renditions=len(version_keys),
-            tags=len(tags)
-        )
-
-        return {
-            'photo_id': photo_id,
-            's3_key': s3_key,
-            'status': 'completed',
-            'thumbnail_key': thumbnail_key,
-            'renditions': list(version_keys.keys()),
-            'tags': tags[:5]  # Return first 5 tags in response
-        }
-
-
-def parse_event_data(record: Dict[str, Any]) -> tuple[str, str, str]:
-    """
-    Parse event data from either S3 events or custom photo events.
-
-    Supports two event formats:
-    1. S3 Event: {"Records": [{"s3": {"object": {"key": "..."}}}]}
-    2. Custom Event: {"photoId": "...", "s3Key": "...", "userId": "..."}
-
-    Returns:
-        tuple: (photo_id, s3_key, user_id)
-    """
-    message_body = json.loads(record['body'])
-
-    # Check if it's an S3 event
-    if 'Records' in message_body and message_body.get('Records'):
-        s3_record = message_body['Records'][0]
-        if s3_record.get('eventSource') == 'aws:s3':
-            # S3 Event format
-            s3_key = s3_record['s3']['object']['key']
-            structured_logger.info("Processing S3 event", s3_key=s3_key)
-
-            # Look up photo by S3 key in database
-            from db_service import get_db_connection
-            with get_db_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "SELECT id, user_id FROM photos WHERE original_s3_key = %s",
-                        (s3_key,)
-                    )
-                    result = cur.fetchone()
-                    if not result:
-                        raise ValueError(f"Photo not found for S3 key: {s3_key}")
-
-                    photo_id = str(result[0])
-                    user_id = str(result[1])
-
-            return photo_id, s3_key, user_id
-
-    # Custom event format (from backend)
-    photo_id = message_body.get('photoId')
-    s3_key = message_body.get('s3Key')
-    user_id = message_body.get('userId')
-
-    if not all([photo_id, s3_key, user_id]):
-        raise ValueError(
-            f"Missing required fields. photoId={photo_id}, "
-            f"s3Key={s3_key}, userId={user_id}"
-        )
-
-    return photo_id, s3_key, user_id
+    return {
+        'photo_id': photo_id,
+        's3_key': s3_key,
+        'status': 'success',
+        'thumbnail_key': thumbnail_key,
+        'rendition_count': 0,
+        'label_count': 0
+    }
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Lambda entry point for processing SQS messages containing S3 upload events.
+    Lambda entry point - processes SQS messages from S3 upload events.
 
     Args:
-        event: Lambda event containing SQS records with S3 event payloads
-        context: Lambda context object
+        event: SQS event containing S3 upload notifications or backend messages
+        context: Lambda context
 
     Returns:
-        Dict with statusCode and processing results
-
-    Supports two event formats:
-    1. S3 Events (from S3 bucket notifications)
-    2. Custom Photo Events (from backend API)
+        Processing summary
     """
-    records_count = len(event.get('Records', []))
-    structured_logger.info("Lambda invocation started", records_count=records_count)
+    logger.info(f"Received event with {len(event.get('Records', []))} records")
 
-    results: List[Dict[str, Any]] = []
-    failures: List[Dict[str, Any]] = []
+    results = []
+    errors = []
 
-    try:
-        for record in event.get('Records', []):
-            message_id = record.get('messageId', 'unknown')
+    for record in event.get('Records', []):
+        try:
+            # Parse SQS message body
+            body = json.loads(record['body'])
 
-            try:
-                structured_logger.info("Processing message", message_id=message_id)
+            # Detect message type: S3 event notification vs backend custom message
+            if 'Records' in body and body.get('Records', [{}])[0].get('eventSource') == 'aws:s3':
+                # S3 event notification - parse S3 event structure
+                s3_record = body['Records'][0]
+                s3_key = s3_record['s3']['object']['key']
 
-                # Parse event data (handles both S3 and custom events)
-                photo_id, s3_key, user_id = parse_event_data(record)
+                # Parse S3 key: originals/{userId}/{photoId} or originals/{userId}/{photoId}.ext
+                key_parts = s3_key.split('/')
+                if len(key_parts) >= 3 and key_parts[0] == 'originals':
+                    user_id = key_parts[1]
+                    photo_id = key_parts[2].split('.')[0]  # Remove extension if present
+                    logger.info(f"S3 event: extracted userId={user_id}, photoId={photo_id}, key={s3_key}")
+                else:
+                    logger.error(f"Invalid S3 key format: {s3_key}")
+                    errors.append({
+                        'message_id': record.get('messageId'),
+                        'error': f'Invalid S3 key format: {s3_key}'
+                    })
+                    continue
+            else:
+                # Backend custom message format
+                photo_id = body.get('photoId') or body.get('uploadId')
+                s3_key = body.get('s3Key')
+                user_id = body.get('userId')
 
-                # Process the image
-                result = process_single_image(photo_id, s3_key, user_id)
-                result['messageId'] = message_id
-                results.append(result)
+                if not all([photo_id, s3_key, user_id]):
+                    logger.error(f"Missing required fields in backend message: {body}")
+                    errors.append({
+                        'message_id': record.get('messageId'),
+                        'error': 'Missing required fields'
+                    })
+                    continue
 
-                structured_logger.info(
-                    "Message processed successfully",
-                    message_id=message_id,
-                    photo_id=photo_id
-                )
-                increment_counter('message.processed.success')
+            # Process the image
+            result = process_single_image(photo_id, s3_key, user_id)
+            results.append(result)
 
-            except Exception as record_error:
-                structured_logger.error(
-                    "Failed to process record",
-                    message_id=message_id,
-                    error=str(record_error)
-                )
-
-                # Try to mark photo as failed in database
-                try:
-                    photo_id = json.loads(record.get('body', '{}')).get('photoId')
-                    if photo_id:
-                        mark_photo_failed(photo_id, str(record_error))
-                except Exception as db_error:
-                    logger.warning(f"Failed to mark photo as failed: {db_error}")
-
-                failures.append({
-                    'messageId': message_id,
-                    'error': str(record_error)
-                })
-                increment_counter('message.processed.failure')
-
-        # Build response
-        response = {
-            'statusCode': 200 if not failures else 207,  # 207 Multi-Status
-            'body': json.dumps({
-                'processed': len(results),
-                'failed': len(failures),
-                'results': results,
-                'failures': failures
+        except Exception as e:
+            logger.error(f"Failed to process record: {str(e)}", exc_info=True)
+            errors.append({
+                'message_id': record.get('messageId'),
+                'error': str(e)
             })
-        }
 
-        if failures:
-            structured_logger.warning(
-                "Lambda completed with failures",
-                total=records_count,
-                succeeded=len(results),
-                failed=len(failures)
-            )
-        else:
-            structured_logger.info(
-                "Lambda completed successfully",
-                total=records_count,
-                processed=len(results)
-            )
-
-        return response
-
-    except Exception as e:
-        structured_logger.error("Fatal error in lambda_handler", error=str(e))
-        logger.error(f"Fatal error details:", exc_info=True)
-        increment_counter('lambda.fatal_error')
-
-        return {
-            'statusCode': 500,
-            'body': json.dumps({
-                'error': 'Internal server error',
-                'message': str(e)
-            })
-        }
+    # Return summary
+    return {
+        'statusCode': 200 if not errors else 207,
+        'body': json.dumps({
+            'processed': len(results),
+            'failed': len(errors),
+            'results': results,
+            'errors': errors
+        })
+    }

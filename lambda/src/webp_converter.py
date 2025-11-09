@@ -8,7 +8,7 @@ from typing import Dict, List
 
 from PIL import Image, ImageOps
 
-from .config import WEBP_QUALITY, WEBP_WIDTHS
+from config import WEBP_QUALITY, WEBP_WIDTHS
 
 logger = logging.getLogger(__name__)
 

@@ -55,6 +55,10 @@ aws:
   sqs:
     photo-upload-queue: ${SQS_PHOTO_UPLOAD_QUEUE:photo-upload-events}
 
+# Lambda Configuration
+lambda:
+  secret: ${LAMBDA_SECRET:rapid-photo-lambda-secret-change-in-production}
+
 # Management/Actuator
 management:
   endpoints:

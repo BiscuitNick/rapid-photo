@@ -7,7 +7,7 @@ from typing import List
 
 # AWS Configuration
 AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
-S3_BUCKET = os.getenv('S3_BUCKET', 'rapid-photo-uploads')
+S3_BUCKET = os.getenv('S3_BUCKET_NAME', os.getenv('S3_BUCKET', 'rapid-photo-uploads'))
 
 # Database Configuration
 DB_HOST = os.getenv('DB_HOST', 'localhost')

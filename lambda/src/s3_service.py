@@ -8,7 +8,7 @@ from typing import Optional
 import boto3
 from botocore.exceptions import ClientError
 
-from .config import AWS_REGION, S3_BUCKET
+from config import AWS_REGION, S3_BUCKET
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ def generate_processed_keys(original_key: str, width: Optional[int] = None) -> s
     Generate S3 key for processed images.
 
     Args:
-        original_key: Original S3 key (e.g., "originals/userId/uuid.jpg")
+        original_key: Original S3 key (e.g., "originals/userId/uuid.jpg" or "uploads/file.jpg")
         width: Optional width for renditions (None for thumbnails)
 
     Returns:
@@ -108,20 +108,29 @@ def generate_processed_keys(original_key: str, width: Optional[int] = None) -> s
         "thumbnails/user123/photo-uuid.jpg"
         >>> generate_processed_keys("originals/user123/photo-uuid.jpg", 1024)
         "processed/user123/photo-uuid-1024.webp"
+        >>> generate_processed_keys("uploads/test.jpg", None)
+        "thumbnails/test.jpg"
     """
-    # Extract user ID and filename from original key
-    # Expected format: originals/{userId}/{uuid}.{ext}
+    # Extract filename from original key
     parts = original_key.split('/')
-    if len(parts) < 3 or parts[0] != 'originals':
-        raise ValueError(f"Invalid original key format: {original_key}")
 
-    user_id = parts[1]
-    filename = parts[2]
-    base_name = filename.rsplit('.', 1)[0]  # Remove extension
+    # Handle different key formats
+    if len(parts) >= 3 and parts[0] == 'originals':
+        # Format: originals/{userId}/{uuid}.{ext}
+        user_id = parts[1]
+        filename = parts[2]
+        base_name = filename.rsplit('.', 1)[0]
 
-    if width is None:
-        # Thumbnail
-        return f"thumbnails/{user_id}/{base_name}.jpg"
+        if width is None:
+            return f"thumbnails/{user_id}/{base_name}.jpg"
+        else:
+            return f"processed/{user_id}/{base_name}-{width}.webp"
     else:
-        # WebP rendition
-        return f"processed/{user_id}/{base_name}-{width}.webp"
+        # Simple format: uploads/file.ext or just file.ext
+        filename = parts[-1]
+        base_name = filename.rsplit('.', 1)[0]
+
+        if width is None:
+            return f"thumbnails/{base_name}.jpg"
+        else:
+            return f"processed/{base_name}-{width}.webp"

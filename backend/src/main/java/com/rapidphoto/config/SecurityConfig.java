@@ -35,6 +35,9 @@ public class SecurityConfig {
                         // Public endpoints - actuator health/info
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
 
+                        // Internal Lambda callbacks - authenticated via custom header
+                        .pathMatchers("/api/v1/internal/**").permitAll()
+
                         // Actuator requires authentication
                         .pathMatchers("/actuator/**").authenticated()
 

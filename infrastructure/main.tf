@@ -134,6 +134,8 @@ module "compute" {
   # Lambda Configuration
   lambda_package_path        = var.lambda_package_path
   lambda_reserved_concurrency = var.lambda_reserved_concurrency
+  backend_url                = "http://${module.compute.alb_dns_name}"
+  lambda_secret              = var.lambda_secret
 
   # Integration
   s3_bucket_name  = module.storage.bucket_name

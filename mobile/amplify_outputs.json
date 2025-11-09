@@ -27,11 +27,11 @@
   },
   "storage": {
     "aws_region": "us-east-1",
-    "bucket_name": "amplify-rapidphotoweb-nic-rapidphotouploadsbucketc-cvzqed1qst7p",
+    "bucket_name": "rapid-photo-dev-photos-971422717446",
     "buckets": [
       {
         "name": "rapidPhotoUploads",
-        "bucket_name": "amplify-rapidphotoweb-nic-rapidphotouploadsbucketc-cvzqed1qst7p",
+        "bucket_name": "rapid-photo-dev-photos-971422717446",
         "aws_region": "us-east-1",
         "paths": {
           "originals/${cognito-identity.amazonaws.com:sub}/*": {
