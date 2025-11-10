@@ -106,7 +106,7 @@ resource "aws_db_instance" "main" {
   multi_az               = var.multi_az
   deletion_protection    = var.deletion_protection
   skip_final_snapshot    = var.skip_final_snapshot
-  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.project_name}-${var.environment}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.project_name}-${var.environment}-final-snapshot"
 
   # Performance Insights
   performance_insights_enabled    = var.enable_performance_insights

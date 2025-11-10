@@ -426,7 +426,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 resource "aws_lambda_function" "image_processor" {
   function_name = "${var.project_name}-${var.environment}-image-processor"
   role          = aws_iam_role.lambda.arn
-  handler       = "handler.lambda_handler"
+  handler       = "src/handler.lambda_handler"
   runtime       = "python3.13"
   architectures = ["arm64"]
   timeout       = 900 # 15 minutes
@@ -561,6 +561,25 @@ resource "aws_iam_role_policy" "lambda_secrets" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = var.db_secret_arn
+      }
+    ]
+  })
+}
+
+# Lambda CloudWatch metrics permissions
+resource "aws_iam_role_policy" "lambda_metrics" {
+  name = "${var.project_name}-${var.environment}-lambda-metrics"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:PutMetricData"
+        ]
+        Resource = "*"
       }
     ]
   })

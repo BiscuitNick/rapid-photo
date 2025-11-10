@@ -166,6 +166,16 @@ class TestProcessSingleImage:
         assert result['label_count'] == 1
         assert mock_upload.call_count == 3  # 1 thumbnail + 2 renditions
         mock_notify_backend.assert_called_once()
+        backend_payload = mock_notify_backend.call_args[0][1]
+        assert backend_payload['status'] == 'READY'
+        assert backend_payload['metadata'] == {
+            'width': 1920,
+            'height': 1080,
+            'format': 'JPEG',
+            'size': 2048,
+        }
+        assert backend_payload['versions'][0]['versionType'] == 'WEBP_640'
+        assert backend_payload['labels'][0] == {'labelName': 'Nature', 'confidence': 95.0}
 
     @patch('src.handler.timed_operation')
     @patch('src.handler.increment_counter')

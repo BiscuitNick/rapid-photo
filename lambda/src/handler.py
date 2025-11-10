@@ -212,21 +212,37 @@ def process_single_image(
         increment_counter('rekognition.completed', dimensions={'user_id': user_id})
 
         # Step 6: Notify backend
+        metadata_payload = {
+            'width': metadata.get('width'),
+            'height': metadata.get('height'),
+            'format': metadata.get('format'),
+            'size': metadata.get('size_bytes'),
+        }
+
+        versions_payload = [
+            {
+                'versionType': f"WEBP_{entry['width']}",
+                's3Key': entry['s3Key'],
+                'width': entry['width'],
+                'mimeType': entry['contentType'],
+            }
+            for entry in rendition_entries
+        ]
+
+        labels_payload = [
+            {
+                'labelName': label['name'],
+                'confidence': label['confidence'],
+            }
+            for label in labels
+        ]
+
         processing_payload = {
-            'photoId': photo_id,
-            'userId': user_id,
             'status': 'READY',
-            'originalKey': s3_key,
             'thumbnailKey': thumbnail_key,
-            'metadata': {
-                'width': metadata.get('width'),
-                'height': metadata.get('height'),
-                'format': metadata.get('format'),
-                'sizeBytes': metadata.get('size_bytes'),
-            },
-            'versions': rendition_entries,
-            'labels': labels,
-            'tags': tags
+            'metadata': metadata_payload,
+            'versions': versions_payload,
+            'labels': labels_payload,
         }
 
         if notify_backend:
@@ -246,7 +262,12 @@ def process_single_image(
             's3_key': s3_key,
             'status': 'completed',
             'thumbnail_key': thumbnail_key,
-            'metadata': processing_payload['metadata'],
+            'metadata': {
+                'width': metadata_payload['width'],
+                'height': metadata_payload['height'],
+                'format': metadata_payload['format'],
+                'sizeBytes': metadata.get('size_bytes'),
+            },
             'renditions': rendition_entries,
             'tags': tags,
             'label_count': len(labels)
