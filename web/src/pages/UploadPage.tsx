@@ -120,7 +120,7 @@ export function UploadPage() {
           <UploadDropzone
             onFilesAdded={addFiles}
             disabled={hasActiveUploads}
-            maxFiles={100}
+            maxFiles={200}
           />
         </div>
 

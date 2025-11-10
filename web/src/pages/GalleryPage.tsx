@@ -2,7 +2,7 @@
  * Gallery page with photo grid, search, and batch download
  */
 
-import { useState, useCallback, useTransition } from 'react';
+import { useState, useCallback, useTransition, useEffect } from 'react';
 import { usePhotos, useInvalidatePhotos } from '../hooks/usePhotos';
 import { GalleryGrid } from '../components/gallery/GalleryGrid';
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox';
@@ -42,6 +42,24 @@ export function GalleryPage() {
   } = usePhotos({ tags, sort, pageSize: 20 });
 
   const invalidatePhotos = useInvalidatePhotos();
+
+  // Debug log for photos payload
+  useEffect(() => {
+    console.log('[Gallery] Photos payload:', {
+      totalPhotos: photos.length,
+      photos: photos,
+      hasNextPage,
+      isLoading,
+      isFetchingNextPage,
+      tags,
+      sort
+    });
+
+    // Log first photo details if available
+    if (photos.length > 0) {
+      console.log('[Gallery] First photo details:', photos[0]);
+    }
+  }, [photos, hasNextPage, isLoading, isFetchingNextPage, tags, sort]);
 
   const handleSearchChange = useCallback((newTags: string[]) => {
     startTransition(() => {
@@ -351,7 +369,7 @@ export function GalleryPage() {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-400px)]">
+          <>
             <GalleryGrid
               photos={photos}
               selectedPhotoIds={selectedPhotoIds}
@@ -365,7 +383,7 @@ export function GalleryPage() {
                 <span className="text-sm text-gray-600">Loading more...</span>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 

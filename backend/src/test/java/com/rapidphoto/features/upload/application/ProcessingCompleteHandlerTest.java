@@ -87,15 +87,19 @@ class ProcessingCompleteHandlerTest {
         version.setFileSize(123_456L);
         version.setMimeType("image/webp");
 
-        ProcessingCompleteRequest.Label label = new ProcessingCompleteRequest.Label();
-        label.setLabelName("Landscape");
-        label.setConfidence(99.9);
+        ProcessingCompleteRequest.Label labelHigh = new ProcessingCompleteRequest.Label();
+        labelHigh.setLabelName("Landscape");
+        labelHigh.setConfidence(99.9);
+
+        ProcessingCompleteRequest.Label labelLow = new ProcessingCompleteRequest.Label();
+        labelLow.setLabelName("Low");
+        labelLow.setConfidence(90.0);
 
         ProcessingCompleteRequest request = new ProcessingCompleteRequest();
         request.setStatus(PhotoStatus.READY.name());
         request.setMetadata(metadata);
         request.setVersions(List.of(version));
-        request.setLabels(List.of(label));
+        request.setLabels(List.of(labelHigh, labelLow));
 
         when(photoRepository.findById(photoId)).thenReturn(Mono.just(existingPhoto));
         when(photoRepository.updateProcessingResults(any(), any(), any(), any(), any(), any())).thenReturn(Mono.empty());
@@ -118,7 +122,7 @@ class ProcessingCompleteHandlerTest {
         when(photoLabelRepository.save(any(PhotoLabel.class))).thenAnswer(invocation -> {
             PhotoLabel arg = invocation.getArgument(0);
             arg.setId(UUID.randomUUID());
-            arg.setConfidence(BigDecimal.valueOf(label.getConfidence()));
+            arg.setConfidence(BigDecimal.valueOf(arg.getConfidence().doubleValue()));
             return Mono.just(arg);
         });
 
@@ -141,6 +145,8 @@ class ProcessingCompleteHandlerTest {
         assertThat(captured.getWidth()).isEqualTo(640);
         assertThat(captured.getMimeType()).isEqualTo("image/webp");
 
-        verify(photoLabelRepository).save(any(PhotoLabel.class));
+        ArgumentCaptor<PhotoLabel> labelCaptor = ArgumentCaptor.forClass(PhotoLabel.class);
+        verify(photoLabelRepository).save(labelCaptor.capture());
+        assertThat(labelCaptor.getValue().getLabelName()).isEqualTo("Landscape");
     }
 }

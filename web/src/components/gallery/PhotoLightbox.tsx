@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Photo, PhotoDetail, PhotoVersionType } from '../../types/api';
+import { Photo, PhotoDetail } from '../../types/api';
 import { apiService } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 
@@ -17,7 +17,6 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
   const { toast } = useToast();
   const [photoDetail, setPhotoDetail] = useState<PhotoDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(true);
-  const [selectedVersion, setSelectedVersion] = useState<PhotoVersionType | 'original'>('original');
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -28,10 +27,6 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
         setIsLoadingDetail(true);
         const detail = await apiService.getPhoto(photo.id);
         setPhotoDetail(detail);
-        // Default to thumbnail if available, otherwise original
-        if (detail.thumbnailUrl) {
-          setSelectedVersion('THUMBNAIL');
-        }
       } catch (error) {
         console.error('Failed to fetch photo details:', error);
         toast({
@@ -47,21 +42,21 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
     fetchPhotoDetail();
   }, [photo.id, toast]);
 
-  // Get the appropriate image URL based on selected version
+  // Get the best available image URL for preview
   const getImageUrl = () => {
     if (!photoDetail) return photo.thumbnailUrl || photo.originalUrl || '';
 
-    if (selectedVersion === 'original') {
-      return photoDetail.originalUrl;
-    }
-    const version = photoDetail.versions.find(v => v.versionType === selectedVersion);
-    return version?.url || photoDetail.originalUrl;
+    // Try to find a large webp version for preview, fallback to original
+    const largeVersion = photoDetail.versions.find(v =>
+      v.versionType === 'WEBP_1920' || v.versionType === 'WEBP_2560'
+    );
+    return largeVersion?.url || photoDetail.originalUrl;
   };
 
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const response = await apiService.getDownloadUrl(photo.id, selectedVersion as string);
+      const response = await apiService.getDownloadUrl(photo.id, 'original');
 
       // Trigger download
       const link = document.createElement('a');
@@ -186,25 +181,6 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
 
           {/* Sidebar */}
           <div className="w-80 bg-white rounded-lg p-6 overflow-y-auto">
-            {/* Version selector */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Version
-              </label>
-              <select
-                value={selectedVersion}
-                onChange={(e) => setSelectedVersion(e.target.value as PhotoVersionType | 'original')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="original">Original</option>
-                {photoDetail.versions.map((version) => (
-                  <option key={version.versionType} value={version.versionType}>
-                    {version.versionType.replace(/_/g, ' ')} {version.width && `(${version.width}px)`}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Actions */}
             <div className="mb-6 space-y-2">
               <button
@@ -242,6 +218,46 @@ export function PhotoLightbox({ photo, onClose, onDelete }: PhotoLightboxProps) 
                 </div>
               </div>
             )}
+
+            {/* Image Versions */}
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Image Versions</h3>
+              <div className="space-y-1.5">
+                {/* Original */}
+                {photoDetail.width && photoDetail.height && (
+                  <a
+                    href={photoDetail.originalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {photoDetail.width}x{photoDetail.height}-{photoDetail.mimeType?.split('/')[1]?.toLowerCase() || 'original'}
+                  </a>
+                )}
+
+                {/* Other versions sorted by size */}
+                {photoDetail.versions
+                  .filter(v => v.width && v.height)
+                  .sort((a, b) => (a.width || 0) - (b.width || 0))
+                  .map((version) => {
+                    const format = version.mimeType?.split('/')[1]?.toLowerCase() ||
+                                  (version.versionType.includes('WEBP') ? 'webp' :
+                                   version.versionType === 'THUMBNAIL' ? 'jpeg' : 'unknown');
+
+                    return (
+                      <a
+                        key={version.versionType}
+                        href={version.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {version.width}x{version.height}-{format}
+                      </a>
+                    );
+                  })}
+              </div>
+            </div>
 
             {/* Metadata */}
             <div className="space-y-4">

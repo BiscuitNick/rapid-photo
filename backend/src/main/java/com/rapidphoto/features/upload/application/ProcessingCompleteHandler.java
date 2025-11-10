@@ -78,6 +78,7 @@ public class ProcessingCompleteHandler {
                     Mono<Void> saveLabels = Mono.empty();
                     if (request.getLabels() != null && !request.getLabels().isEmpty()) {
                         saveLabels = Flux.fromIterable(request.getLabels())
+                                .filter(labelDto -> labelDto.getConfidence() != null && labelDto.getConfidence() >= 95.0)
                                 .flatMap(labelDto -> {
                                     PhotoLabel label = new PhotoLabel();
                                     label.setPhotoId(photoId);
