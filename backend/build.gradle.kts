@@ -68,7 +68,7 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-    testImplementation("com.nimbusds:nimbus-jose-jwt:9.37.3")
+    testImplementation("com.nimbusds:nimbus-jose-jwt:10.6")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
