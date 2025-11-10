@@ -60,7 +60,9 @@ public class ProcessingCompleteHandler {
                                     version.setPhotoId(photoId);
                                     version.setVersionType(PhotoVersionType.valueOf(versionDto.getVersionType()));
                                     version.setS3Key(versionDto.getS3Key());
+                                    version.setFileSize(versionDto.getFileSize());
                                     version.setWidth(versionDto.getWidth());
+                                    version.setHeight(versionDto.getHeight());
                                     version.setMimeType(versionDto.getMimeType());
                                     version.setCreatedAt(Instant.now());
 

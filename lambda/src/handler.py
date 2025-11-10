@@ -26,6 +26,7 @@ from .webp_converter import create_webp_renditions
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
+INCLUDE_VERSION_PAYLOAD = os.getenv('INCLUDE_VERSION_PAYLOAD', 'false').lower() == 'true'
 structured_logger = StructuredLogger(__name__)
 
 # HTTP client for backend callbacks
@@ -190,14 +191,16 @@ def process_single_image(
         renditions = create_webp_renditions(image_data)
         rendition_entries: List[Dict[str, Any]] = []
         for width in sorted(renditions.keys()):
-            webp_data = renditions[width]
+            webp_info = renditions[width]
+            webp_data = webp_info['data']
             rendition_key = generate_processed_keys(s3_key, width=width)
             upload_to_s3(webp_data, rendition_key, content_type='image/webp')
             rendition_entries.append({
-                'width': width,
+                'width': webp_info['width'],
+                'height': webp_info['height'],
                 's3Key': rendition_key,
                 'contentType': 'image/webp',
-                'sizeBytes': len(webp_data)
+                'fileSize': len(webp_data)
             })
 
         increment_counter(
@@ -219,15 +222,29 @@ def process_single_image(
             'size': metadata.get('size_bytes'),
         }
 
-        versions_payload = [
-            {
-                'versionType': f"WEBP_{entry['width']}",
-                's3Key': entry['s3Key'],
-                'width': entry['width'],
-                'mimeType': entry['contentType'],
-            }
-            for entry in rendition_entries
-        ]
+        versions_payload: List[Dict[str, Any]] = []
+        if INCLUDE_VERSION_PAYLOAD:
+            versions_payload = [
+                {
+                    'versionType': 'THUMBNAIL',
+                    's3Key': thumbnail_key,
+                    'width': metadata_payload['width'],
+                    'height': metadata_payload['height'],
+                    'fileSize': len(thumbnail_data),
+                    'mimeType': 'image/jpeg'
+                },
+                *[
+                    {
+                        'versionType': f"WEBP_{entry['width']}",
+                        's3Key': entry['s3Key'],
+                        'width': entry['width'],
+                        'height': entry['height'],
+                        'fileSize': entry['fileSize'],
+                        'mimeType': entry['contentType'],
+                    }
+                    for entry in rendition_entries
+                ]
+            ]
 
         labels_payload = [
             {

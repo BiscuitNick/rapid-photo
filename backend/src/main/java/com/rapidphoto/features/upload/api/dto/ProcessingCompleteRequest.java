@@ -57,6 +57,12 @@ public class ProcessingCompleteRequest {
         @NotNull
         private Integer width;
 
+        @NotNull
+        private Integer height;
+
+        @NotNull
+        private Long fileSize;
+
         private String mimeType;
     }
 

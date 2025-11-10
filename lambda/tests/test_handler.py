@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
+from src import handler as handler_module
 from src.handler import lambda_handler, process_single_image
 
 
@@ -142,8 +143,8 @@ class TestProcessSingleImage:
         }
         mock_thumbnail.return_value = b'thumbnail data'
         mock_webp.return_value = {
-            640: b'webp640',
-            1280: b'webp1280',
+            640: {'data': b'webp640', 'width': 640, 'height': 360},
+            1280: {'data': b'webp1280', 'width': 1280, 'height': 720},
         }
         mock_detect_labels.return_value = [
             {'name': 'Nature', 'confidence': 95.0, 'parents': []}
@@ -152,11 +153,16 @@ class TestProcessSingleImage:
         mock_timed_operation.return_value.__enter__.return_value = None
         mock_timed_operation.return_value.__exit__.return_value = None
 
-        result = process_single_image(
-            photo_id='photo-123',
-            s3_key='originals/user456/photo.jpg',
-            user_id='user456'
-        )
+        original_flag = handler_module.INCLUDE_VERSION_PAYLOAD
+        handler_module.INCLUDE_VERSION_PAYLOAD = True
+        try:
+            result = process_single_image(
+                photo_id='photo-123',
+                s3_key='originals/user456/photo.jpg',
+                user_id='user456'
+            )
+        finally:
+            handler_module.INCLUDE_VERSION_PAYLOAD = original_flag
 
         assert result['status'] == 'completed'
         assert result['thumbnail_key'] == 'thumbnails/user456/photo.jpg'
@@ -174,7 +180,10 @@ class TestProcessSingleImage:
             'format': 'JPEG',
             'size': 2048,
         }
-        assert backend_payload['versions'][0]['versionType'] == 'WEBP_640'
+        assert backend_payload['versions'][0]['versionType'] == 'THUMBNAIL'
+        assert backend_payload['versions'][0]['fileSize'] == len(b'thumbnail data')
+        assert backend_payload['versions'][1]['versionType'] == 'WEBP_640'
+        assert backend_payload['versions'][1]['height'] == 360
         assert backend_payload['labels'][0] == {'labelName': 'Nature', 'confidence': 95.0}
 
     @patch('src.handler.timed_operation')
@@ -204,7 +213,7 @@ class TestProcessSingleImage:
         mock_download.return_value = b'data'
         mock_metadata.return_value = {'width': 100, 'height': 100, 'format': 'JPEG', 'size_bytes': 10}
         mock_thumbnail.return_value = b'thumb'
-        mock_webp.return_value = {640: b'webp'}
+        mock_webp.return_value = {640: {'data': b'webp', 'width': 640, 'height': 360}}
         mock_detect_labels.return_value = [{'name': 'Sky', 'confidence': 90.0, 'parents': []}]
         mock_extract_tags.return_value = ['Sky']
         mock_timed_operation.return_value.__enter__.return_value = None
