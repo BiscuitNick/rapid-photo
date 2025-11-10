@@ -9,6 +9,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -53,7 +54,7 @@ public class User {
      * Factory method to create a new user from Cognito JWT claims.
      */
     public static User fromCognito(String cognitoUserId, String email, String name) {
-        UUID userId = UUID.fromString(cognitoUserId);
+        UUID userId = deriveUserId(cognitoUserId);
 
         return User.builder()
                 .id(userId)
@@ -83,5 +84,22 @@ public class User {
      */
     public void recordLogin() {
         this.lastLoginAt = Instant.now();
+    }
+
+    /**
+     * Derive a UUID from the Cognito subject claim.
+     * If the value is already a UUID we reuse it, otherwise we deterministically
+     * hash it so the same Cognito ID always maps to the same UUID.
+     */
+    public static UUID deriveUserId(String cognitoUserId) {
+        if (cognitoUserId == null || cognitoUserId.isBlank()) {
+            throw new IllegalArgumentException("Cognito user ID cannot be null or blank");
+        }
+
+        try {
+            return UUID.fromString(cognitoUserId);
+        } catch (IllegalArgumentException ignored) {
+            return UUID.nameUUIDFromBytes(cognitoUserId.getBytes(StandardCharsets.UTF_8));
+        }
     }
 }

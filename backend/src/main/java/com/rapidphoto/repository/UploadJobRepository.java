@@ -61,6 +61,30 @@ public interface UploadJobRepository extends ReactiveCrudRepository<UploadJob, U
                                 String status, Instant expiresAt, Instant createdAt);
 
     /**
+     * Convenience method to persist an UploadJob aggregate with enum casting.
+     */
+    default Mono<UploadJob> saveWithEnumCast(UploadJob uploadJob) {
+        UUID id = uploadJob.getId() != null ? uploadJob.getId() : UUID.randomUUID();
+        Instant createdAt = uploadJob.getCreatedAt() != null ? uploadJob.getCreatedAt() : Instant.now();
+
+        uploadJob.setId(id);
+        uploadJob.setCreatedAt(createdAt);
+
+        return saveWithEnumCast(
+                id,
+                uploadJob.getUserId(),
+                uploadJob.getS3Key(),
+                uploadJob.getPresignedUrl(),
+                uploadJob.getFileName(),
+                uploadJob.getFileSize(),
+                uploadJob.getMimeType(),
+                uploadJob.getStatus(),
+                uploadJob.getExpiresAt(),
+                createdAt
+        ).thenReturn(uploadJob);
+    }
+
+    /**
      * Custom update method with explicit ENUM casting for status field.
      */
     @Query("UPDATE upload_jobs SET status = :status::upload_job_status, etag = :etag, confirmed_at = :confirmedAt " +

@@ -34,24 +34,28 @@ public class ProcessingCompleteHandler {
 
     @Transactional
     public Mono<Void> handle(UUID photoId, ProcessingCompleteRequest request) {
-        log.info("Handling processing complete for photo: {}, status: {}", photoId, request.getStatus());
+        logSchemaExample(photoId);
+        logPayload(photoId, request);
 
         return photoRepository.findById(photoId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Photo not found: " + photoId)))
                 .flatMap(photo -> {
-                    // Update photo status and metadata
-                    photo.setStatusEnum(request.getPhotoStatus());
-                    photo.setProcessedAt(Instant.now());
+                    Instant now = Instant.now();
+                    Integer newWidth = request.getMetadata() != null && request.getMetadata().getWidth() != null
+                            ? request.getMetadata().getWidth()
+                            : photo.getWidth();
+                    Integer newHeight = request.getMetadata() != null && request.getMetadata().getHeight() != null
+                            ? request.getMetadata().getHeight()
+                            : photo.getHeight();
 
-                    if (request.getMetadata() != null) {
-                        photo.setWidth(request.getMetadata().getWidth());
-                        photo.setHeight(request.getMetadata().getHeight());
-                    }
+                    Mono<Void> updatePhoto = photoRepository.updateProcessingResults(
+                            photoId,
+                            request.getPhotoStatus().name(),
+                            newWidth,
+                            newHeight,
+                            now,
+                            now
+                    );
 
-                    return photoRepository.save(photo);
-                })
-                .flatMap(photo -> {
-                    // Save versions if provided
                     Mono<Void> saveVersions = Mono.empty();
                     if (request.getVersions() != null && !request.getVersions().isEmpty()) {
                         saveVersions = Flux.fromIterable(request.getVersions())
@@ -64,14 +68,13 @@ public class ProcessingCompleteHandler {
                                     version.setWidth(versionDto.getWidth());
                                     version.setHeight(versionDto.getHeight());
                                     version.setMimeType(versionDto.getMimeType());
-                                    version.setCreatedAt(Instant.now());
+                                    version.setCreatedAt(now);
 
-                                    return photoVersionRepository.save(version);
+                                    return photoVersionRepository.saveWithEnumCast(version);
                                 })
                                 .then();
                     }
 
-                    // Save labels if provided
                     Mono<Void> saveLabels = Mono.empty();
                     if (request.getLabels() != null && !request.getLabels().isEmpty()) {
                         saveLabels = Flux.fromIterable(request.getLabels())
@@ -80,16 +83,71 @@ public class ProcessingCompleteHandler {
                                     label.setPhotoId(photoId);
                                     label.setLabelName(labelDto.getLabelName());
                                     label.setConfidence(BigDecimal.valueOf(labelDto.getConfidence()));
-                                    label.setCreatedAt(Instant.now());
+                                    label.setCreatedAt(now);
 
                                     return photoLabelRepository.save(label);
                                 })
                                 .then();
                     }
 
-                    return Mono.when(saveVersions, saveLabels);
+                    return updatePhoto.then(Mono.when(saveVersions, saveLabels)
+                            .doOnSuccess(v -> log.info("Successfully updated photo {} with processing results", photoId)));
                 })
-                .doOnSuccess(v -> log.info("Successfully updated photo {} with processing results", photoId))
+                .switchIfEmpty(Mono.fromRunnable(() ->
+                        log.warn("Photo {} not found when handling processing complete callback. Skipping.", photoId)))
                 .then();
+    }
+
+    private void logSchemaExample(UUID photoId) {
+        String example = new StringBuilder()
+                .append("\nPhotoVersion DB schema example (required columns)\n")
+                .append("photo_id=").append(photoId).append("\n")
+                .append("version_type=WEBP_640\n")
+                .append("s3_key=versions/").append(photoId).append("/webp_640.webp\n")
+                .append("file_size=123456\n")
+                .append("width=640\n")
+                .append("height=360\n")
+                .append("mime_type=image/webp\n")
+                .toString();
+        log.info(example);
+    }
+
+    private void logPayload(UUID photoId, ProcessingCompleteRequest request) {
+        StringBuilder sb = new StringBuilder()
+                .append("\nProcessingComplete payload (photoId=").append(photoId).append(")\n")
+                .append("status=").append(request.getStatus()).append("\n")
+                .append("thumbnailKey=").append(request.getThumbnailKey()).append("\n");
+
+        ProcessingCompleteRequest.Metadata metadata = request.getMetadata();
+        sb.append("metadata.width=").append(metadata != null ? metadata.getWidth() : "null").append("\n");
+        sb.append("metadata.height=").append(metadata != null ? metadata.getHeight() : "null").append("\n");
+        sb.append("metadata.format=").append(metadata != null ? metadata.getFormat() : "null").append("\n");
+        sb.append("metadata.size=").append(metadata != null ? metadata.getSize() : "null").append("\n");
+
+        if (request.getVersions() == null || request.getVersions().isEmpty()) {
+            sb.append("versions=[]\n");
+        } else {
+            for (int i = 0; i < request.getVersions().size(); i++) {
+                ProcessingCompleteRequest.Version version = request.getVersions().get(i);
+                sb.append("versions[").append(i).append("].versionType=").append(version.getVersionType()).append("\n");
+                sb.append("versions[").append(i).append("].s3Key=").append(version.getS3Key()).append("\n");
+                sb.append("versions[").append(i).append("].width=").append(version.getWidth()).append("\n");
+                sb.append("versions[").append(i).append("].height=").append(version.getHeight()).append("\n");
+                sb.append("versions[").append(i).append("].fileSize=").append(version.getFileSize()).append("\n");
+                sb.append("versions[").append(i).append("].mimeType=").append(version.getMimeType()).append("\n");
+            }
+        }
+
+        if (request.getLabels() == null || request.getLabels().isEmpty()) {
+            sb.append("labels=[]\n");
+        } else {
+            for (int i = 0; i < request.getLabels().size(); i++) {
+                ProcessingCompleteRequest.Label label = request.getLabels().get(i);
+                sb.append("labels[").append(i).append("].labelName=").append(label.getLabelName()).append("\n");
+                sb.append("labels[").append(i).append("].confidence=").append(label.getConfidence()).append("\n");
+            }
+        }
+
+        log.info(sb.toString());
     }
 }

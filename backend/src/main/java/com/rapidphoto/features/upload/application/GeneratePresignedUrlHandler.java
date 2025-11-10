@@ -43,18 +43,7 @@ public class GeneratePresignedUrlHandler {
                         command.fileName(),
                         command.mimeType()))
                 .flatMap(presignedResult -> createUploadJob(command, presignedResult))
-                .flatMap(uploadJob -> uploadJobRepository.saveWithEnumCast(
-                        uploadJob.getId(),
-                        uploadJob.getUserId(),
-                        uploadJob.getS3Key(),
-                        uploadJob.getPresignedUrl(),
-                        uploadJob.getFileName(),
-                        uploadJob.getFileSize(),
-                        uploadJob.getMimeType(),
-                        uploadJob.getStatus(),
-                        uploadJob.getExpiresAt(),
-                        uploadJob.getCreatedAt()
-                ).thenReturn(uploadJob))
+                .flatMap(uploadJobRepository::saveWithEnumCast)
                 .map(this::toResponse)
                 .doOnSuccess(response -> log.info("Successfully generated presigned URL, uploadId: {}",
                         response.getUploadId()))

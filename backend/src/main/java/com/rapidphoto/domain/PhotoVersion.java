@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
@@ -25,21 +26,27 @@ public class PhotoVersion {
     @Id
     private UUID id;
 
+    @Column("photo_id")
     private UUID photoId;
 
+    @Column("version_type")
     private PhotoVersionType versionType;
 
+    @Column("s3_key")
     private String s3Key;
 
+    @Column("file_size")
     private Long fileSize;
 
     private Integer width;
 
     private Integer height;
 
+    @Column("mime_type")
     private String mimeType;
 
     @CreatedDate
+    @Column("created_at")
     private Instant createdAt;
 
     /**
