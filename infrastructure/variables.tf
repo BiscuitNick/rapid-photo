@@ -21,6 +21,17 @@ variable "project_name" {
   default     = "rapid-photo"
 }
 
+# ===== Platform Selection =====
+variable "backend_platform" {
+  description = "Backend platform: 'ecs' for ECS Fargate + RDS, 'lightsail' for Lightsail Container + Database"
+  type        = string
+  default     = "ecs"
+  validation {
+    condition     = contains(["ecs", "lightsail"], var.backend_platform)
+    error_message = "backend_platform must be either 'ecs' or 'lightsail'"
+  }
+}
+
 # ===== Networking Variables =====
 variable "vpc_cidr" {
   description = "CIDR block for VPC"
@@ -279,4 +290,47 @@ variable "alarm_email_endpoints" {
   description = "Email addresses for alarm notifications"
   type        = list(string)
   default     = []
+}
+
+# ===== Lightsail-Specific Variables =====
+variable "lightsail_container_power" {
+  description = "Lightsail container service power (nano, micro, small, medium, large, xlarge)"
+  type        = string
+  default     = "micro"
+}
+
+variable "lightsail_container_scale" {
+  description = "Number of Lightsail container instances (1-20)"
+  type        = number
+  default     = 1
+}
+
+variable "lightsail_database_blueprint_id" {
+  description = "Lightsail database blueprint ID (postgres_15, postgres_16)"
+  type        = string
+  default     = "postgres_15"
+}
+
+variable "lightsail_database_bundle_id" {
+  description = "Lightsail database bundle ID (micro_2_0, small_2_0, medium_2_0, large_2_0)"
+  type        = string
+  default     = "micro_2_0"
+}
+
+variable "lightsail_db_publicly_accessible" {
+  description = "Whether Lightsail database should be publicly accessible"
+  type        = bool
+  default     = false
+}
+
+variable "lightsail_domain_name" {
+  description = "Custom domain name for Lightsail container service (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "lightsail_route53_zone_id" {
+  description = "Route53 hosted zone ID for Lightsail DNS (optional)"
+  type        = string
+  default     = ""
 }

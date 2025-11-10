@@ -21,9 +21,9 @@ resource "aws_sqs_queue" "image_processing" {
   name                       = "${var.project_name}-${var.environment}-image-processing"
   visibility_timeout_seconds = var.visibility_timeout
   message_retention_seconds  = var.message_retention
-  max_message_size          = 262144 # 256 KB
-  delay_seconds             = 0
-  receive_wait_time_seconds = 20 # Long polling
+  max_message_size           = 262144 # 256 KB
+  delay_seconds              = 0
+  receive_wait_time_seconds  = 20 # Long polling
 
   # Redrive policy to send messages to DLQ after max_receive_count
   redrive_policy = jsonencode({

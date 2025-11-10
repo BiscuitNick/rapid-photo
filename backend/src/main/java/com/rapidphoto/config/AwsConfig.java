@@ -18,6 +18,21 @@ import java.net.URI;
 
 /**
  * AWS configuration for S3 and SQS services.
+ *
+ * Credentials are automatically loaded by DefaultCredentialsProvider in this order:
+ * 1. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY) - used for Lightsail
+ * 2. Java system properties (aws.accessKeyId, aws.secretAccessKey)
+ * 3. Web Identity Token credentials from environment or container
+ * 4. EC2 instance profile credentials (used for ECS tasks)
+ * 5. Credential/config file (~/.aws/credentials)
+ *
+ * For Lightsail deployments:
+ * - AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are injected as container environment variables
+ * - These are populated from AWS Secrets Manager during container deployment
+ * - The IAM user has least-privilege access to S3 and SQS only
+ *
+ * For ECS deployments:
+ * - Credentials come from the ECS task role attached to the task definition
  */
 @Slf4j
 @Configuration

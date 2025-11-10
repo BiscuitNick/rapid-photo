@@ -49,8 +49,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "ECS Service - Request Rate"
-          region  = var.aws_region
+          title  = "ECS Service - Request Rate"
+          region = var.aws_region
           metrics = [
             ["AWS/ApplicationELB", "RequestCount", { stat = "Sum", label = "Requests" }]
           ]
@@ -66,8 +66,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "ECS Service - Error Rate"
-          region  = var.aws_region
+          title  = "ECS Service - Error Rate"
+          region = var.aws_region
           metrics = [
             ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", { stat = "Sum", label = "5XX Errors" }],
             [".", "HTTPCode_Target_4XX_Count", { stat = "Sum", label = "4XX Errors" }]
@@ -79,8 +79,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "ECS Service - Duration (p50, p95, p99)"
-          region  = var.aws_region
+          title  = "ECS Service - Duration (p50, p95, p99)"
+          region = var.aws_region
           metrics = [
             ["AWS/ApplicationELB", "TargetResponseTime", { stat = "p50", label = "p50" }],
             ["...", { stat = "p95", label = "p95" }],
@@ -99,8 +99,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "ECS - CPU & Memory Utilization"
-          region  = var.aws_region
+          title  = "ECS - CPU & Memory Utilization"
+          region = var.aws_region
           metrics = [
             ["AWS/ECS", "CPUUtilization", { stat = "Average", label = "CPU %" }],
             [".", "MemoryUtilization", { stat = "Average", label = "Memory %" }]
@@ -118,8 +118,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "ECS - Task Count"
-          region  = var.aws_region
+          title  = "ECS - Task Count"
+          region = var.aws_region
           metrics = [
             ["AWS/ECS", "RunningTaskCount", { stat = "Average", label = "Running Tasks" }]
           ]
@@ -131,8 +131,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "Lambda - Invocations & Errors"
-          region  = var.aws_region
+          title  = "Lambda - Invocations & Errors"
+          region = var.aws_region
           metrics = [
             ["AWS/Lambda", "Invocations", { stat = "Sum", label = "Invocations" }],
             [".", "Errors", { stat = "Sum", label = "Errors" }],
@@ -144,8 +144,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "Lambda - Duration & Concurrent Executions"
-          region  = var.aws_region
+          title  = "Lambda - Duration & Concurrent Executions"
+          region = var.aws_region
           metrics = [
             ["AWS/Lambda", "Duration", { stat = "Average", label = "Avg Duration (ms)" }],
             [".", "ConcurrentExecutions", { stat = "Maximum", label = "Max Concurrent" }]
@@ -158,8 +158,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "SQS - Queue Depth & Age"
-          region  = var.aws_region
+          title  = "SQS - Queue Depth & Age"
+          region = var.aws_region
           metrics = [
             ["AWS/SQS", "ApproximateNumberOfMessagesVisible", { stat = "Average", label = "Messages in Queue" }],
             [".", "ApproximateAgeOfOldestMessage", { stat = "Maximum", label = "Oldest Message (s)" }]
@@ -170,8 +170,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "SQS - Dead Letter Queue"
-          region  = var.aws_region
+          title  = "SQS - Dead Letter Queue"
+          region = var.aws_region
           metrics = [
             ["AWS/SQS", "ApproximateNumberOfMessagesVisible", { stat = "Sum", label = "DLQ Messages" }]
           ]
@@ -183,8 +183,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "RDS - CPU & Connections"
-          region  = var.aws_region
+          title  = "RDS - CPU & Connections"
+          region = var.aws_region
           metrics = [
             ["AWS/RDS", "CPUUtilization", { stat = "Average", label = "CPU %" }],
             [".", "DatabaseConnections", { stat = "Average", label = "Connections" }]
@@ -195,8 +195,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "RDS - Storage & Memory"
-          region  = var.aws_region
+          title  = "RDS - Storage & Memory"
+          region = var.aws_region
           metrics = [
             ["AWS/RDS", "FreeStorageSpace", { stat = "Average", label = "Free Storage (bytes)" }],
             [".", "FreeableMemory", { stat = "Average", label = "Free Memory (bytes)" }]
@@ -209,12 +209,72 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric"
         properties = {
-          title   = "S3 - Bucket Operations"
-          region  = var.aws_region
+          title  = "S3 - Bucket Operations"
+          region = var.aws_region
           metrics = [
             ["AWS/S3", "AllRequests", { stat = "Sum", label = "All Requests" }],
             [".", "4xxErrors", { stat = "Sum", label = "4xx Errors" }],
             [".", "5xxErrors", { stat = "Sum", label = "5xx Errors" }]
+          ]
+          period = 300
+        }
+      },
+
+      # Lightsail Container Service Metrics
+      {
+        type = "metric"
+        properties = {
+          title  = "Lightsail Container - CPU & Memory"
+          region = var.aws_region
+          metrics = [
+            ["AWS/Lightsail", "CPUUtilization", { stat = "Average", label = "CPU %" }],
+            [".", "MemoryUtilization", { stat = "Average", label = "Memory %" }]
+          ]
+          period = 300
+          yAxis = {
+            left = {
+              label = "Percent"
+              min   = 0
+              max   = 100
+            }
+          }
+        }
+      },
+      {
+        type = "metric"
+        properties = {
+          title  = "Lightsail Container - Network"
+          region = var.aws_region
+          metrics = [
+            ["AWS/Lightsail", "NetworkIn", { stat = "Sum", label = "Network In (bytes)" }],
+            [".", "NetworkOut", { stat = "Sum", label = "Network Out (bytes)" }]
+          ]
+          period = 300
+        }
+      },
+
+      # Lightsail Database Metrics
+      {
+        type = "metric"
+        properties = {
+          title  = "Lightsail DB - CPU & Connections"
+          region = var.aws_region
+          metrics = [
+            ["AWS/Lightsail", "CPUUtilization", { stat = "Average", label = "CPU %" }],
+            [".", "DatabaseConnections", { stat = "Average", label = "Connections" }]
+          ]
+          period = 300
+        }
+      },
+      {
+        type = "metric"
+        properties = {
+          title  = "Lightsail DB - Storage & Network"
+          region = var.aws_region
+          metrics = [
+            ["AWS/Lightsail", "FreeStorageSpace", { stat = "Average", label = "Free Storage (bytes)" }],
+            [".", "NetworkTransmitThroughput", { stat = "Average", label = "Network TX" }],
+            [".", "NetworkReceiveThroughput", { stat = "Average", label = "Network RX" }]
           ]
           period = 300
         }

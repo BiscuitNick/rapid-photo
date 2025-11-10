@@ -1,5 +1,20 @@
 {
 	"mcpServers": {
+		"awslabs.aws-api-mcp-server": {
+			"command": "uvx",
+			"args": [
+				"awslabs.aws-api-mcp-server@latest"
+			],
+			"env": {
+				"AWS_REGION": "us-east-1"
+			},
+			"disabled": false,
+			"autoApprove": []
+    	},
+		"aws-knowledge-mcp-server": {
+			"url": "https://knowledge-mcp.global.api.aws",
+			"type": "http"
+		},
 		"task-master-ai": {
 			"type": "stdio",
 			"command": "npx",
