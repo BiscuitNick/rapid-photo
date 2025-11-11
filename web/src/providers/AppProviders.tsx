@@ -20,17 +20,18 @@ const queryClient = new QueryClient({
 });
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
-  const checkAuth = useAuthStore((state) => state.checkAuth);
-
   useEffect(() => {
     // Configure Amplify on mount
     configureAmplify().catch((error) => {
       console.error('Failed to configure Amplify:', error);
     });
 
-    // Check authentication status
+    // Check authentication status only once on initial mount
+    // Trust persisted auth state from localStorage for subsequent renders
+    const checkAuth = useAuthStore.getState().checkAuth;
     checkAuth();
-  }, [checkAuth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

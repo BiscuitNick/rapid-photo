@@ -19,6 +19,7 @@ interface AuthState {
   error: string | null;
   accessToken: string | null;
   idToken: string | null;
+  lastAuthCheck: number | null;
 }
 
 interface AuthActions {
@@ -55,6 +56,7 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
       accessToken: null,
       idToken: null,
+      lastAuthCheck: null,
 
       // Actions
       setUser: (user) =>
@@ -100,6 +102,7 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: false,
             accessToken: null,
             idToken: null,
+            lastAuthCheck: null,
             isLoading: false,
           });
         } catch (error) {
@@ -111,6 +114,20 @@ export const useAuthStore = create<AuthStore>()(
 
       checkAuth: async () => {
         try {
+          const state = get();
+          const now = Date.now();
+          const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+          // If auth was checked within last 24 hours and user is authenticated, skip check
+          if (
+            state.lastAuthCheck &&
+            state.isAuthenticated &&
+            now - state.lastAuthCheck < TWENTY_FOUR_HOURS
+          ) {
+            console.log('[Auth] Skipping auth check - last checked within 24 hours');
+            return;
+          }
+
           set({ isLoading: true });
 
           const [currentUser, session] = await Promise.all([
@@ -130,6 +147,7 @@ export const useAuthStore = create<AuthStore>()(
               isAuthenticated: true,
               accessToken: tokens.accessToken.toString(),
               idToken: tokens.idToken.toString(),
+              lastAuthCheck: now,
               isLoading: false,
               error: null,
             });
@@ -139,6 +157,7 @@ export const useAuthStore = create<AuthStore>()(
               isAuthenticated: false,
               accessToken: null,
               idToken: null,
+              lastAuthCheck: null,
               isLoading: false,
             });
           }
@@ -148,6 +167,7 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: false,
             accessToken: null,
             idToken: null,
+            lastAuthCheck: null,
             isLoading: false,
             error: null, // Don't set error for unauthenticated state
           });
@@ -180,6 +200,7 @@ export const useAuthStore = create<AuthStore>()(
         isAuthenticated: state.isAuthenticated,
         accessToken: state.accessToken,
         idToken: state.idToken,
+        lastAuthCheck: state.lastAuthCheck,
       }),
     }
   )

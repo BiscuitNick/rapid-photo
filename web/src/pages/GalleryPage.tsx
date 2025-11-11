@@ -2,18 +2,15 @@
  * Gallery page with photo grid, search, and batch download
  */
 
-import { useState, useCallback, useTransition, useEffect, useMemo } from 'react';
+import { useState, useCallback, useTransition, useEffect } from 'react';
 import { usePhotos } from '../hooks/usePhotos';
 import { useDeletePhoto, useBatchDeletePhotos } from '../hooks/usePhotoMutations';
-import { GalleryGrid, PendingGridItem } from '../components/gallery/GalleryGrid';
+import { GalleryGrid } from '../components/gallery/GalleryGrid';
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox';
 import { SearchBar } from '../components/gallery/SearchBar';
 import { downloadPhotosAsZip, DownloadProgress } from '../lib/batchDownload';
 import { useToast } from '../hooks/useToast';
-import { useUploadStore } from '../stores/uploadStore';
-import type { Photo, UploadItemStatus } from '../types/api';
-
-const PENDING_UPLOAD_STATUSES: UploadItemStatus[] = ['queued', 'uploading', 'confirming', 'processing'];
+import type { Photo } from '../types/api';
 
 export function GalleryPage() {
   const { toast } = useToast();
@@ -33,8 +30,6 @@ export function GalleryPage() {
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
 
   // Fetch photos
-  const queue = useUploadStore((state) => state.queue);
-
   const {
     photos,
     isLoading,
@@ -66,27 +61,6 @@ export function GalleryPage() {
       console.log('[Gallery] First photo details:', photos[0]);
     }
   }, [photos, hasNextPage, isLoading, isFetchingNextPage, tags, sort]);
-
-  const { pendingItems, filteredPhotos } = useMemo(() => {
-    const photoMap = new Map(photos.map((photo) => [photo.id, photo]));
-
-    const pendingItems: PendingGridItem[] = queue
-      .filter((item) => PENDING_UPLOAD_STATUSES.includes(item.status))
-      .map((item) => ({
-        key: item.photoId ?? `pending-${item.id}`,
-        photo: item.photoId ? photoMap.get(item.photoId) ?? null : null,
-      }));
-
-    const pendingPhotoIds = new Set(
-      pendingItems
-        .filter((entry) => entry.photo)
-        .map((entry) => entry.photo!.id)
-    );
-
-    const filteredPhotos = photos.filter((photo) => !pendingPhotoIds.has(photo.id));
-
-    return { pendingItems, filteredPhotos };
-  }, [queue, photos]);
 
   const handleSearchChange = useCallback((newTags: string[]) => {
     startTransition(() => {
@@ -412,13 +386,12 @@ export function GalleryPage() {
         ) : (
           <>
             <GalleryGrid
-              photos={filteredPhotos}
+              photos={photos}
               selectedPhotoIds={selectedPhotoIds}
               onPhotoSelect={handlePhotoSelect}
               onPhotoClick={setLightboxPhoto}
               onLoadMore={fetchNextPage}
               hasMore={hasNextPage}
-              pendingItems={pendingItems}
             />
             {isFetchingNextPage && (
               <div className="text-center py-4">

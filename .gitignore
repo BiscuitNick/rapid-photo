@@ -106,4 +106,5 @@ terraform.tfstate.backup
 *.tfvars
 # But DO commit .terraform.lock.hcl (dependency lock file)
 infrastructure/lightsail-deployment.json
+backend/lightsail-deployment.json
 infrastructure/*.bak

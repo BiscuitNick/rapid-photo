@@ -5,12 +5,6 @@
 import { useRef, useEffect } from 'react';
 import { Photo } from '../../types/api';
 import { PhotoCard } from './PhotoCard';
-import { GallerySkeletonCard } from './GallerySkeletonCard';
-
-export interface PendingGridItem {
-  key: string;
-  photo: Photo | null;
-}
 
 interface GalleryGridProps {
   photos: Photo[];
@@ -19,7 +13,6 @@ interface GalleryGridProps {
   onPhotoClick: (photo: Photo) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
-  pendingItems?: PendingGridItem[];
 }
 
 export function GalleryGrid({
@@ -29,7 +22,6 @@ export function GalleryGrid({
   onPhotoClick,
   onLoadMore,
   hasMore = false,
-  pendingItems = [],
 }: GalleryGridProps) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -96,19 +88,6 @@ export function GalleryGrid({
       className="flex flex-col gap-6"
     >
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-        {pendingItems.map((item) =>
-          item.photo ? (
-            <PhotoCard
-              key={item.key}
-              photo={item.photo}
-              isSelected={selectedPhotoIds.has(item.photo.id)}
-              onSelect={onPhotoSelect}
-              onClick={onPhotoClick}
-            />
-          ) : (
-            <GallerySkeletonCard key={item.key} />
-          )
-        )}
         {photos.map((photo) => (
           <PhotoCard
             key={photo.id}
