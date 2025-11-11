@@ -7,10 +7,10 @@ class ApiConfig {
   /// - iOS simulator: 'http://localhost:8080'
   /// - Physical device: Use your local IP address
   ///
-  /// For production: Use the deployed backend URL
+  /// For production: Use the deployed backend URL (Lightsail)
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://rapid-photo-dev-alb-351686176.us-east-1.elb.amazonaws.com',
+    defaultValue: 'https://rapid-photo-dev-backend.51qxcte01q11c.us-east-1.cs.amazonlightsail.com',
   );
 
   /// API version prefix
