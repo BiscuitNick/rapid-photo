@@ -2,7 +2,6 @@
  * React Query hook for fetching and managing photos
  */
 
-import { useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Photo, SearchPhotosParams } from '../types/api';
@@ -60,30 +59,14 @@ export function usePhotos(params: UsePhotosParams = {}): UsePhotosResult {
       return lastPage.hasNext ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 0,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: false, // We handle polling manually
+    staleTime: 0, // Always consider data stale for real-time updates
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gets focus
+    refetchInterval: 5000, // Poll every 5 seconds for new/updated photos
   });
 
   // Flatten all pages into a single array of photos
   const photos = data?.pages.flatMap((page) => page.content) ?? [];
-
-  // Poll for processing photos
-  useEffect(() => {
-    const hasProcessingPhotos = photos.some(
-      (photo) => photo.status === 'PENDING_PROCESSING' || photo.status === 'PROCESSING'
-    );
-
-    if (!hasProcessingPhotos) {
-      return;
-    }
-
-    // Poll every 3 seconds when there are processing photos
-    const interval = setInterval(() => {
-      refetch();
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [photos, refetch]);
 
   return {
     photos,
