@@ -3,12 +3,12 @@
  */
 
 import { useState, useCallback, useTransition, useEffect } from 'react';
-import { usePhotos, useInvalidatePhotos } from '../hooks/usePhotos';
+import { usePhotos } from '../hooks/usePhotos';
+import { useDeletePhoto, useBatchDeletePhotos } from '../hooks/usePhotoMutations';
 import { GalleryGrid } from '../components/gallery/GalleryGrid';
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox';
 import { SearchBar } from '../components/gallery/SearchBar';
 import { downloadPhotosAsZip, DownloadProgress } from '../lib/batchDownload';
-import { apiService } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import type { Photo } from '../types/api';
 
@@ -39,9 +39,10 @@ export function GalleryPage() {
     isFetchingNextPage,
     fetchNextPage,
     refetch,
-  } = usePhotos({ tags, sort, pageSize: 20 });
+  } = usePhotos({ tags, sort, pageSize: 50 }); // Increased to show more photos at once
 
-  const invalidatePhotos = useInvalidatePhotos();
+  const deletePhotoMutation = useDeletePhoto();
+  const batchDeleteMutation = useBatchDeletePhotos();
 
   // Debug log for photos payload
   useEffect(() => {
@@ -149,31 +150,30 @@ export function GalleryPage() {
       return;
     }
 
-    try {
-      // Delete each photo
-      const deletePromises = selectedPhotos.map((photo) =>
-        apiService.deletePhoto(photo.id)
-      );
+    // Clear selection immediately for better UX
+    setSelectedPhotoIds(new Set());
 
-      await Promise.all(deletePromises);
-
-      toast({
-        title: 'Photos deleted',
-        description: `Successfully deleted ${selectedPhotos.length} photo${selectedPhotos.length > 1 ? 's' : ''}`,
-      });
-
-      // Clear selection and refresh
-      setSelectedPhotoIds(new Set());
-      invalidatePhotos();
-    } catch (error) {
-      console.error('Batch delete failed:', error);
-      toast({
-        title: 'Delete failed',
-        description: error instanceof Error ? error.message : 'Failed to delete photos',
-        variant: 'destructive',
-      });
-    }
-  }, [photos, selectedPhotoIds, toast, invalidatePhotos]);
+    // Use mutation with optimistic updates
+    batchDeleteMutation.mutate(
+      selectedPhotos.map(p => p.id),
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Photos deleted',
+            description: `Successfully deleted ${selectedPhotos.length} photo${selectedPhotos.length > 1 ? 's' : ''}`,
+          });
+        },
+        onError: (error) => {
+          console.error('Batch delete failed:', error);
+          toast({
+            title: 'Delete failed',
+            description: error instanceof Error ? error.message : 'Failed to delete photos',
+            variant: 'destructive',
+          });
+        }
+      }
+    );
+  }, [photos, selectedPhotoIds, toast, batchDeleteMutation]);
 
   const handlePhotoDelete = useCallback(
     (photoId: string) => {
@@ -184,10 +184,25 @@ export function GalleryPage() {
         return newSet;
       });
 
-      // Refetch photos
-      invalidatePhotos();
+      // Use mutation with optimistic updates
+      deletePhotoMutation.mutate(photoId, {
+        onSuccess: () => {
+          toast({
+            title: 'Photo deleted',
+            description: 'Photo has been successfully deleted',
+          });
+        },
+        onError: (error) => {
+          console.error('Delete failed:', error);
+          toast({
+            title: 'Delete failed',
+            description: error instanceof Error ? error.message : 'Failed to delete photo',
+            variant: 'destructive',
+          });
+        }
+      });
     },
-    [invalidatePhotos]
+    [deletePhotoMutation, toast]
   );
 
   if (isError) {

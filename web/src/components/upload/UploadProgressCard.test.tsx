@@ -10,14 +10,23 @@ import type { UploadItem } from '../../types/api';
 describe('UploadProgressCard', () => {
   const createMockItem = (
     overrides: Partial<UploadItem> = {}
-  ): UploadItem => ({
-    id: '1',
-    file: new File(['content'], 'test.jpg', { type: 'image/jpeg' }),
-    status: 'queued',
-    progress: 0,
-    retryCount: 0,
-    ...overrides,
-  });
+  ): UploadItem => {
+    const file =
+      overrides.file ??
+      new File(['content'], 'test.jpg', { type: 'image/jpeg' });
+
+    return {
+      id: '1',
+      file,
+      fileName: overrides.fileName ?? file.name,
+      fileSize: overrides.fileSize ?? file.size,
+      mimeType: overrides.mimeType ?? file.type,
+      status: 'queued',
+      progress: 0,
+      retryCount: 0,
+      ...overrides,
+    };
+  };
 
   it('should render file name and size', () => {
     const item = createMockItem();

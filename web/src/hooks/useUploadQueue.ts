@@ -2,10 +2,12 @@
  * Upload queue hook with concurrency control and retry logic
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { apiService } from '../services/api';
 import { useInvalidatePhotos } from './usePhotos';
-import type { UploadItem } from '../types/api';
+import { useAddPhotoToCache } from './usePhotoMutations';
+import { useUploadStore } from '../stores/uploadStore';
+import type { UploadItem, Photo } from '../types/api';
 
 const MAX_CONCURRENT_UPLOADS = 10;
 const MAX_RETRY_ATTEMPTS = 3;
@@ -20,6 +22,7 @@ interface UseUploadQueueReturn {
   pauseAll: () => void;
   resumeAll: () => void;
   clearCompleted: () => void;
+  clearAll: () => void;
   stats: {
     total: number;
     queued: number;
@@ -31,13 +34,15 @@ interface UseUploadQueueReturn {
 }
 
 export const useUploadQueue = (): UseUploadQueueReturn => {
-  const [queue, setQueue] = useState<UploadItem[]>([]);
-  const [isPaused, setIsPaused] = useState(false);
+  // Use global store for queue persistence
+  const { queue, updateItem: storeUpdateItem, addToQueue, removeItem: storeRemoveItem, setQueue, clearCompleted: storeClearCompleted, clearAll: storeClearAll } = useUploadStore();
   const activeUploadsRef = useRef(0);
   const processingRef = useRef(false);
   const queueRef = useRef<UploadItem[]>([]);
   const processingItemsRef = useRef<Set<string>>(new Set());
   const invalidatePhotos = useInvalidatePhotos();
+  const addPhotoToCache = useAddPhotoToCache();
+  const isPausedRef = useRef(false);
 
   // Keep queueRef in sync with queue state
   useEffect(() => {
@@ -47,25 +52,28 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
   // Update a single item in the queue
   const updateItem = useCallback(
     (id: string, updates: Partial<UploadItem>) => {
-      setQueue((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-      );
+      storeUpdateItem(id, updates);
     },
-    []
+    [storeUpdateItem]
   );
 
   // Upload a single file
   const uploadFile = useCallback(
     async (item: UploadItem): Promise<void> => {
+      const file = item.file;
+      if (!file) {
+        throw new Error('File data is unavailable for this upload item');
+      }
+
       try {
         // Step 1: Initiate upload and get presigned URL
         // Status is already set to 'uploading' in processQueue, just update progress
         updateItem(item.id, { progress: 0 });
 
         const initiateResponse = await apiService.initiateUpload({
-          fileName: item.file.name,
-          fileSize: item.file.size,
-          mimeType: item.file.type,
+          fileName: item.fileName,
+          fileSize: item.fileSize,
+          mimeType: item.mimeType,
         });
 
         updateItem(item.id, {
@@ -77,7 +85,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
         // Step 2: Upload to S3 with progress tracking
         const etag = await apiService.uploadToS3(
           initiateResponse.presignedUrl,
-          item.file,
+          file,
           ({ loaded, total }) => {
             const progress = Math.round((loaded / total) * 100);
             updateItem(item.id, { progress });
@@ -97,7 +105,28 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
           photoId: confirmResponse.photoId,
         });
 
-        // Invalidate photos query to refresh gallery
+        // Fetch the new photo data and add to cache for immediate visibility
+        try {
+          const photoDetail = await apiService.getPhoto(confirmResponse.photoId);
+          // Convert PhotoDetail to Photo for cache
+          const photo: Photo = {
+            id: photoDetail.id,
+            fileName: photoDetail.fileName,
+            status: photoDetail.status,
+            thumbnailUrl: photoDetail.thumbnailUrl,
+            originalUrl: photoDetail.originalUrl,
+            width: photoDetail.width,
+            height: photoDetail.height,
+            labels: photoDetail.labels.map(l => l.labelName),
+            createdAt: photoDetail.createdAt,
+            takenAt: photoDetail.takenAt,
+          };
+          addPhotoToCache(photo);
+        } catch (error) {
+          console.error('Failed to fetch new photo data:', error);
+        }
+
+        // Also invalidate to ensure consistency
         invalidatePhotos();
       } catch (error) {
         const errorMessage =
@@ -123,13 +152,13 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
         throw error;
       }
     },
-    [updateItem, invalidatePhotos]
+    [updateItem, invalidatePhotos, addPhotoToCache]
   );
 
   // Process queue with concurrency control
   const processQueue = useCallback(async () => {
-    console.log('[Upload] processQueue called, isPaused:', isPaused, 'processing:', processingRef.current);
-    if (processingRef.current || isPaused) return;
+    console.log('[Upload] processQueue called, isPaused:', isPausedRef.current, 'processing:', processingRef.current);
+    if (processingRef.current || isPausedRef.current) return;
 
     processingRef.current = true;
 
@@ -149,7 +178,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
         break;
       }
 
-      console.log('[Upload] Processing item:', nextItem.file.name);
+      console.log('[Upload] Processing item:', nextItem.file?.name ?? nextItem.fileName);
 
       // Wait if at max concurrency
       if (activeUploadsRef.current >= MAX_CONCURRENT_UPLOADS) {
@@ -174,7 +203,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
 
       uploadFile(nextItem)
         .catch((error) => {
-          console.error(`Upload failed for ${nextItem.file.name}:`, error);
+          console.error(`Upload failed for ${nextItem.file?.name ?? nextItem.fileName}:`, error);
         })
         .finally(() => {
           // Clean up: remove from processing set and decrement counter
@@ -184,16 +213,16 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
     }
 
     processingRef.current = false;
-  }, [isPaused, uploadFile]);
+  }, [uploadFile]);
 
   // Automatically process queue when items are added or status changes
   useEffect(() => {
     const hasQueuedItems = queue.some((item) => item.status === 'queued');
-    if (hasQueuedItems && !processingRef.current && !isPaused) {
+    if (hasQueuedItems && !processingRef.current && !isPausedRef.current) {
       console.log('[Upload] useEffect detected queued items, triggering processQueue');
       processQueue();
     }
-  }, [queue, isPaused, processQueue]);
+  }, [queue, processQueue]);
 
   // Add files to queue
   const addFiles = useCallback(
@@ -202,85 +231,80 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
       const newItems: UploadItem[] = files.map((file) => ({
         id: `${Date.now()}-${Math.random()}`,
         file,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
         status: 'queued',
         progress: 0,
         retryCount: 0,
       }));
 
-      setQueue((prev) => {
-        console.log('[Upload] Queue before:', prev.length, 'Queue after:', prev.length + newItems.length);
-        return [...prev, ...newItems];
-      });
+      addToQueue(newItems);
     },
-    []
+    [addToQueue]
   );
 
   // Remove file from queue
   const removeFile = useCallback((id: string) => {
-    setQueue((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+    storeRemoveItem(id);
+  }, [storeRemoveItem]);
 
   // Retry a specific file
   const retryFile = useCallback(
     (id: string) => {
-      setQueue((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                status: 'queued' as const,
-                retryCount: 0,
-                progress: 0,
-              }
-            : item
-        )
-      );
+      storeUpdateItem(id, {
+        status: 'queued',
+        retryCount: 0,
+        progress: 0,
+      });
     },
-    []
+    [storeUpdateItem]
   );
 
   // Retry all failed uploads
   const retryAll = useCallback(() => {
-    setQueue((prev) =>
-      prev.map((item) =>
-        item.status === 'failed'
-          ? {
-              ...item,
-              status: 'queued' as const,
-              retryCount: 0,
-              progress: 0,
-            }
-          : item
-      )
+    const updatedQueue = queue.map((item) =>
+      item.status === 'failed'
+        ? {
+            ...item,
+            status: 'queued' as const,
+            retryCount: 0,
+            progress: 0,
+          }
+        : item
     );
-  }, []);
+    setQueue(updatedQueue);
+  }, [queue, setQueue]);
 
   // Pause all uploads
   const pauseAll = useCallback(() => {
-    setIsPaused(true);
-    setQueue((prev) =>
-      prev.map((item) =>
-        item.status === 'queued' || item.status === 'uploading'
-          ? { ...item, status: 'paused' }
-          : item
-      )
+    isPausedRef.current = true;
+    const updatedQueue = queue.map((item) =>
+      item.status === 'queued' || item.status === 'uploading'
+        ? { ...item, status: 'paused' as const }
+        : item
     );
-  }, []);
+    setQueue(updatedQueue);
+  }, [queue, setQueue]);
 
   // Resume all uploads
   const resumeAll = useCallback(() => {
-    setIsPaused(false);
-    setQueue((prev) =>
-      prev.map((item) =>
-        item.status === 'paused' ? { ...item, status: 'queued' } : item
-      )
+    isPausedRef.current = false;
+    const updatedQueue = queue.map((item) =>
+      item.status === 'paused' ? { ...item, status: 'queued' as const } : item
     );
-  }, []);
+    setQueue(updatedQueue);
+  }, [queue, setQueue]);
 
   // Clear completed uploads
   const clearCompleted = useCallback(() => {
-    setQueue((prev) => prev.filter((item) => item.status !== 'complete'));
-  }, []);
+    storeClearCompleted();
+  }, [storeClearCompleted]);
+
+  // Clear entire queue
+  const clearAll = useCallback(() => {
+    storeClearAll();
+  }, [storeClearAll]);
 
   // Calculate stats
   const stats = {
@@ -301,6 +325,7 @@ export const useUploadQueue = (): UseUploadQueueReturn => {
     pauseAll,
     resumeAll,
     clearCompleted,
+    clearAll,
     stats,
   };
 };

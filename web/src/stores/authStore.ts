@@ -34,6 +34,17 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
+const USER_ALREADY_AUTHENTICATED_EXCEPTION = 'UserAlreadyAuthenticatedException';
+
+function isAlreadySignedInError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: string }).name === USER_ALREADY_AUTHENTICATED_EXCEPTION
+  );
+}
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -59,9 +70,8 @@ export const useAuthStore = create<AuthStore>()(
         set({ error }),
 
       login: async (email, password) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-
           await signIn({
             username: email,
             password,
@@ -69,6 +79,10 @@ export const useAuthStore = create<AuthStore>()(
 
           await get().checkAuth();
         } catch (error) {
+          if (isAlreadySignedInError(error)) {
+            await get().checkAuth();
+            return;
+          }
           const message = error instanceof Error ? error.message : 'Login failed';
           set({ error: message, isLoading: false });
           throw error;

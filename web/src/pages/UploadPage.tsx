@@ -16,6 +16,7 @@ export function UploadPage() {
     pauseAll,
     resumeAll,
     clearCompleted,
+    clearAll,
     stats,
   } = useUploadQueue();
 
@@ -107,6 +108,12 @@ export function UploadPage() {
                   Clear Completed ({stats.complete})
                 </button>
               )}
+              <button
+                onClick={clearAll}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Clear queue
+              </button>
 
               <div className="ml-auto text-sm text-gray-600 flex items-center">
                 Processing up to 10 concurrent uploads

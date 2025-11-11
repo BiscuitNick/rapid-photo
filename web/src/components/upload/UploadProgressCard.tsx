@@ -17,6 +17,9 @@ export function UploadProgressCard({
   onRetry,
   onRemove,
 }: UploadProgressCardProps) {
+  const fileName = item.file?.name ?? item.fileName ?? 'Unknown file';
+  const fileSize = item.file?.size ?? item.fileSize;
+
   const getStatusColor = () => {
     switch (item.status) {
       case 'complete':
@@ -133,10 +136,10 @@ export function UploadProgressCard({
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {item.file.name}
+                {fileName}
               </p>
               <p className="text-xs text-gray-500">
-                {formatFileSize(item.file.size)}
+                {fileSize !== undefined ? formatFileSize(fileSize) : 'Size unavailable'}
               </p>
             </div>
 
