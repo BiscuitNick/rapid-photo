@@ -50,6 +50,11 @@ public class InternalUploadController {
 
         return processingCompleteHandler.handle(photoId, request)
                 .doOnSuccess(v -> log.info("Successfully processed completion for photo: {}", photoId))
-                .doOnError(e -> log.error("Failed to process completion for photo: {}", photoId, e));
+                .doOnError(e -> log.error(
+                        "Failed to process completion for photo: {}, request payload={}",
+                        photoId,
+                        request,
+                        e
+                ));
     }
 }

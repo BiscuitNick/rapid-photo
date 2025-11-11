@@ -4,11 +4,11 @@ WebP conversion utilities for creating multi-resolution renditions.
 
 import io
 import logging
-from typing import Dict, List
+from typing import Any, Dict, List, Tuple
 
 from PIL import Image, ImageOps
 
-from config import WEBP_QUALITY, WEBP_WIDTHS
+from .config import WEBP_QUALITY, WEBP_WIDTHS
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def convert_to_webp(
     image_data: bytes,
     width: int,
     quality: int = WEBP_QUALITY
-) -> bytes:
+) -> Tuple[bytes, int, int]:
     """
     Convert image to WebP format at specified width while maintaining aspect ratio.
 
@@ -27,7 +27,7 @@ def convert_to_webp(
         quality: WebP quality (0-100)
 
     Returns:
-        WebP image as bytes
+        Tuple of (WebP bytes, width, height)
 
     Raises:
         ValueError: If image data is invalid or width is non-positive
@@ -87,7 +87,7 @@ def convert_to_webp(
                 f"size={len(webp_bytes)} bytes"
             )
 
-            return webp_bytes
+            return webp_bytes, target_width, target_height
 
     except Exception as e:
         logger.error(f"Failed to convert to WebP at width {width}: {str(e)}")
@@ -98,7 +98,7 @@ def create_webp_renditions(
     image_data: bytes,
     widths: List[int] = None,
     quality: int = WEBP_QUALITY
-) -> Dict[int, bytes]:
+) -> Dict[int, Dict[str, Any]]:
     """
     Create multiple WebP renditions at different widths.
 
@@ -108,7 +108,10 @@ def create_webp_renditions(
         quality: WebP quality (0-100)
 
     Returns:
-        Dictionary mapping width to WebP bytes
+        Dictionary mapping width to metadata dict with keys:
+        - data: WebP bytes
+        - width: actual width
+        - height: actual height
 
     Raises:
         ValueError: If any width is invalid
@@ -117,13 +120,17 @@ def create_webp_renditions(
     if widths is None:
         widths = WEBP_WIDTHS
 
-    renditions = {}
+    renditions: Dict[int, Dict[str, bytes | int]] = {}
     errors = []
 
     for width in widths:
         try:
-            webp_data = convert_to_webp(image_data, width, quality)
-            renditions[width] = webp_data
+            webp_data, actual_width, actual_height = convert_to_webp(image_data, width, quality)
+            renditions[width] = {
+                'data': webp_data,
+                'width': actual_width,
+                'height': actual_height
+            }
         except Exception as e:
             error_msg = f"Failed to create {width}px rendition: {str(e)}"
             logger.error(error_msg)

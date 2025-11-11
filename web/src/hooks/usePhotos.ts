@@ -2,7 +2,6 @@
  * React Query hook for fetching and managing photos
  */
 
-import { useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Photo, SearchPhotosParams } from '../types/api';
@@ -51,39 +50,29 @@ export function usePhotos(params: UsePhotosParams = {}): UsePhotosResult {
         ...(tags.length > 0 && { tags }),
       };
 
+      console.log('[usePhotos] Fetching page:', pageParam, 'size:', pageSize);
+
       // Use search endpoint if tags are provided, otherwise use regular getPhotos
-      return isSearch
+      const result = isSearch
         ? await apiService.searchPhotos(searchParams)
         : await apiService.getPhotos(searchParams);
+
+      console.log('[usePhotos] Got', result.content?.length || 0, 'photos for page', pageParam);
+      return result;
     },
     getNextPageParam: (lastPage) => {
       return lastPage.hasNext ? lastPage.page + 1 : undefined;
     },
     initialPageParam: 0,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: false, // We handle polling manually
+    staleTime: 0, // Always consider data stale for real-time updates
+    gcTime: 5 * 60 * 1000, // Keep cache for 5 minutes
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: false, // Disable to prevent excessive requests
+    refetchInterval: 5000 // Poll every 5 seconds for real-time updates
   });
 
   // Flatten all pages into a single array of photos
   const photos = data?.pages.flatMap((page) => page.content) ?? [];
-
-  // Poll for processing photos
-  useEffect(() => {
-    const hasProcessingPhotos = photos.some(
-      (photo) => photo.status === 'PENDING_PROCESSING' || photo.status === 'PROCESSING'
-    );
-
-    if (!hasProcessingPhotos) {
-      return;
-    }
-
-    // Poll every 3 seconds when there are processing photos
-    const interval = setInterval(() => {
-      refetch();
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [photos, refetch]);
 
   return {
     photos,
@@ -110,6 +99,36 @@ export function useInvalidatePhotos() {
   const queryClient = useQueryClient();
 
   return () => {
-    queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+    // Invalidate ALL photos queries regardless of sort/filter parameters
+    // This ensures all cached versions are refreshed
+    queryClient.invalidateQueries({
+      queryKey: [QUERY_KEY],
+      exact: false // Match all queries that start with QUERY_KEY
+    });
+  };
+}
+
+/**
+ * Hook to manually refresh all photo queries
+ * Forces immediate refetch of all photo data
+ */
+export function useRefreshPhotos() {
+  const queryClient = useQueryClient();
+
+  return async () => {
+    // Cancel any in-flight queries
+    await queryClient.cancelQueries({ queryKey: [QUERY_KEY] });
+
+    // Invalidate and refetch all photo queries
+    await queryClient.invalidateQueries({
+      queryKey: [QUERY_KEY],
+      exact: false
+    });
+
+    // Refetch all photo queries immediately
+    await queryClient.refetchQueries({
+      queryKey: [QUERY_KEY],
+      exact: false
+    });
   };
 }

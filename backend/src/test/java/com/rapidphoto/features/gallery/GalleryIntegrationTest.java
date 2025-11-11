@@ -321,7 +321,7 @@ class GalleryIntegrationTest {
                 .mimeType("image/jpeg")
                 .width(1920)
                 .height(1080)
-                .status(PhotoStatus.READY.name())
+                .status(PhotoStatus.READY)
                 .createdAt(Instant.now())
                 .processedAt(Instant.now())
                 .build();

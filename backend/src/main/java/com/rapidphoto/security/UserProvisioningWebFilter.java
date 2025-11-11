@@ -33,6 +33,11 @@ public class UserProvisioningWebFilter implements WebFilter {
         String path = exchange.getRequest().getPath().value();
         String method = exchange.getRequest().getMethod().name();
 
+        // Skip filter for health/info endpoints - they don't need user provisioning
+        if (path.equals("/actuator/health") || path.equals("/actuator/info")) {
+            return chain.filter(exchange);
+        }
+
         log.warn("Hello I am working - UserProvisioningWebFilter engaged for {} {}", method, path);
 
         return exchange.getPrincipal()

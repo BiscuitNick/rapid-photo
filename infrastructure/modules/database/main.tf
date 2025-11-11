@@ -97,19 +97,19 @@ resource "aws_db_instance" "main" {
   vpc_security_group_ids = [var.security_group_id]
 
   # Backup configuration
-  backup_retention_period   = var.backup_retention_period
-  backup_window             = "03:00-04:00"
-  maintenance_window        = "mon:04:00-mon:05:00"
+  backup_retention_period         = var.backup_retention_period
+  backup_window                   = "03:00-04:00"
+  maintenance_window              = "mon:04:00-mon:05:00"
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
   # High availability
-  multi_az               = var.multi_az
-  deletion_protection    = var.deletion_protection
-  skip_final_snapshot    = var.skip_final_snapshot
-  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.project_name}-${var.environment}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  multi_az                  = var.multi_az
+  deletion_protection       = var.deletion_protection
+  skip_final_snapshot       = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.project_name}-${var.environment}-final-snapshot"
 
   # Performance Insights
-  performance_insights_enabled    = var.enable_performance_insights
+  performance_insights_enabled          = var.enable_performance_insights
   performance_insights_retention_period = var.enable_performance_insights ? 7 : null
 
   # Auto minor version upgrade

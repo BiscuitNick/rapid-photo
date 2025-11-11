@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signUp, confirmSignUp } from 'aws-amplify/auth';
 import { useAuthStore } from '../stores/authStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup' | 'confirm'>('login');
@@ -13,7 +13,17 @@ export function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const login = useAuthStore((state) => state.login);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectPath =
+    (location.state as { from?: { pathname?: string } })?.from?.pathname ?? '/upload';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, navigate, redirectPath]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +32,7 @@ export function AuthPage() {
 
     try {
       await login(email, password);
-      navigate('/upload');
+      navigate(redirectPath, { replace: true });
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

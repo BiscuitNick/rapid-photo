@@ -27,8 +27,8 @@ resource "aws_lb" "main" {
   security_groups    = [var.alb_security_group_id]
   subnets            = var.alb_subnet_ids
 
-  enable_deletion_protection = var.enable_deletion_protection
-  enable_http2               = true
+  enable_deletion_protection       = var.enable_deletion_protection
+  enable_http2                     = true
   enable_cross_zone_load_balancing = true
 
   tags = {
@@ -215,7 +215,7 @@ resource "aws_ecs_service" "backend" {
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [var.ecs_security_group_id]
-    assign_public_ip = true  # Required for default VPC (public subnets, no NAT Gateway)
+    assign_public_ip = true # Required for default VPC (public subnets, no NAT Gateway)
   }
 
   load_balancer {
@@ -426,7 +426,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 resource "aws_lambda_function" "image_processor" {
   function_name = "${var.project_name}-${var.environment}-image-processor"
   role          = aws_iam_role.lambda.arn
-  handler       = "handler.lambda_handler"
+  handler       = "src/handler.lambda_handler"
   runtime       = "python3.13"
   architectures = ["arm64"]
   timeout       = 900 # 15 minutes
@@ -467,9 +467,9 @@ resource "aws_lambda_function" "image_processor" {
 
 # Lambda SQS Event Source Mapping
 resource "aws_lambda_event_source_mapping" "sqs" {
-  event_source_arn = var.sqs_queue_arn
-  function_name    = aws_lambda_function.image_processor.arn
-  batch_size       = 10
+  event_source_arn                   = var.sqs_queue_arn
+  function_name                      = aws_lambda_function.image_processor.arn
+  batch_size                         = 10
   maximum_batching_window_in_seconds = 5
 
   scaling_config {
@@ -561,6 +561,25 @@ resource "aws_iam_role_policy" "lambda_secrets" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = var.db_secret_arn
+      }
+    ]
+  })
+}
+
+# Lambda CloudWatch metrics permissions
+resource "aws_iam_role_policy" "lambda_metrics" {
+  name = "${var.project_name}-${var.environment}-lambda-metrics"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:PutMetricData"
+        ]
+        Resource = "*"
       }
     ]
   })

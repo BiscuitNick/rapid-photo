@@ -13,7 +13,7 @@ from src.rekognition_service import detect_labels, extract_tags
 class TestRekognitionService:
     """Test suite for Rekognition service functions"""
 
-    def setup_method(self):
+    def setup_method(self, _method):
         """Setup mocks before each test"""
         self.rekognition_client = boto3.client('rekognition', region_name='us-east-1')
         self.s3_client = boto3.client('s3', region_name='us-east-1')

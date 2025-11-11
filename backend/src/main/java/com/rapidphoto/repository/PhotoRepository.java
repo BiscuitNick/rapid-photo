@@ -139,4 +139,18 @@ public interface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {
      */
     @Query("UPDATE photos SET status = :status::photo_status WHERE id = :id")
     Mono<Void> updateStatusWithEnumCast(UUID id, String status);
+
+    /**
+     * Update processing metadata (status, dimensions, processed timestamp) with enum casting.
+     */
+    @Query("""
+            UPDATE photos SET status = :status::photo_status,
+                              width = :width,
+                              height = :height,
+                              processed_at = :processedAt,
+                              updated_at = :updatedAt
+            WHERE id = :id
+            """)
+    Mono<Void> updateProcessingResults(UUID id, String status, Integer width, Integer height,
+                                       Instant processedAt, Instant updatedAt);
 }

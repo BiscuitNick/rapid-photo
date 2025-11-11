@@ -204,6 +204,59 @@ logging:
     org.testcontainers: WARN
 
 ---
+# Lightsail Profile
+# Use this profile when deploying to AWS Lightsail Container Service
+# Environment variables (injected via container deployment):
+#   - DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD (from Lightsail managed database)
+#   - AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (from Lightsail IAM user credentials)
+#   - S3_BUCKET_NAME, SQS_PHOTO_UPLOAD_QUEUE, LAMBDA_SECRET, COGNITO_ISSUER_URI, COGNITO_JWK_SET_URI
+spring:
+  config:
+    activate:
+      on-profile: lightsail
+
+  r2dbc:
+    properties:
+      sslMode: require # Lightsail managed databases enforce TLS
+    pool:
+      initial-size: 5  # Smaller pool for Lightsail micro instance
+      max-size: 10     # Adjust based on Lightsail database capacity
+
+  flyway:
+    clean-disabled: true # Never allow clean in production
+    validate-on-migrate: true
+    # SSL parameters for JDBC connection (Flyway doesn't support R2DBC)
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME:rapidphoto}?sslmode=require
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME:rapidphoto}?sslmode=require
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  metrics:
+    export:
+      cloudwatch:
+        enabled: true # Enable CloudWatch metrics
+  tracing:
+    sampling:
+      probability: 0.3 # Moderate sampling for Lightsail
+
+logging:
+  level:
+    root: INFO
+    com.rapidphoto: INFO
+    org.springframework.cache: INFO
+    io.r2dbc.postgresql: INFO
+    org.springframework.r2dbc: INFO
+    org.springframework.data.r2dbc: INFO
+    org.springframework.security: INFO
+    io.netty: WARN
+    reactor.netty: WARN
+
+---
 # Production Profile
 spring:
   config:

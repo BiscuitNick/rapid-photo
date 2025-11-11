@@ -2,15 +2,18 @@
  * Gallery page with photo grid, search, and batch download
  */
 
-import { useState, useCallback, useTransition } from 'react';
-import { usePhotos, useInvalidatePhotos } from '../hooks/usePhotos';
-import { GalleryGrid } from '../components/gallery/GalleryGrid';
+import { useState, useCallback, useTransition, useEffect, useMemo } from 'react';
+import { usePhotos } from '../hooks/usePhotos';
+import { useDeletePhoto, useBatchDeletePhotos } from '../hooks/usePhotoMutations';
+import { GalleryGrid, PendingGridItem } from '../components/gallery/GalleryGrid';
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox';
 import { SearchBar } from '../components/gallery/SearchBar';
 import { downloadPhotosAsZip, DownloadProgress } from '../lib/batchDownload';
-import { apiService } from '../services/api';
 import { useToast } from '../hooks/useToast';
-import type { Photo } from '../types/api';
+import { useUploadStore } from '../stores/uploadStore';
+import type { Photo, UploadItemStatus } from '../types/api';
+
+const PENDING_UPLOAD_STATUSES: UploadItemStatus[] = ['queued', 'uploading', 'confirming', 'processing'];
 
 export function GalleryPage() {
   const { toast } = useToast();
@@ -30,6 +33,8 @@ export function GalleryPage() {
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
 
   // Fetch photos
+  const queue = useUploadStore((state) => state.queue);
+
   const {
     photos,
     isLoading,
@@ -39,9 +44,49 @@ export function GalleryPage() {
     isFetchingNextPage,
     fetchNextPage,
     refetch,
-  } = usePhotos({ tags, sort, pageSize: 20 });
+  } = usePhotos({ tags, sort, pageSize: 50 }); // Increased to show more photos at once
 
-  const invalidatePhotos = useInvalidatePhotos();
+  const deletePhotoMutation = useDeletePhoto();
+  const batchDeleteMutation = useBatchDeletePhotos();
+
+  // Debug log for photos payload
+  useEffect(() => {
+    console.log('[Gallery] Photos payload:', {
+      totalPhotos: photos.length,
+      photos: photos,
+      hasNextPage,
+      isLoading,
+      isFetchingNextPage,
+      tags,
+      sort
+    });
+
+    // Log first photo details if available
+    if (photos.length > 0) {
+      console.log('[Gallery] First photo details:', photos[0]);
+    }
+  }, [photos, hasNextPage, isLoading, isFetchingNextPage, tags, sort]);
+
+  const { pendingItems, filteredPhotos } = useMemo(() => {
+    const photoMap = new Map(photos.map((photo) => [photo.id, photo]));
+
+    const pendingItems: PendingGridItem[] = queue
+      .filter((item) => PENDING_UPLOAD_STATUSES.includes(item.status))
+      .map((item) => ({
+        key: item.photoId ?? `pending-${item.id}`,
+        photo: item.photoId ? photoMap.get(item.photoId) ?? null : null,
+      }));
+
+    const pendingPhotoIds = new Set(
+      pendingItems
+        .filter((entry) => entry.photo)
+        .map((entry) => entry.photo!.id)
+    );
+
+    const filteredPhotos = photos.filter((photo) => !pendingPhotoIds.has(photo.id));
+
+    return { pendingItems, filteredPhotos };
+  }, [queue, photos]);
 
   const handleSearchChange = useCallback((newTags: string[]) => {
     startTransition(() => {
@@ -131,31 +176,30 @@ export function GalleryPage() {
       return;
     }
 
-    try {
-      // Delete each photo
-      const deletePromises = selectedPhotos.map((photo) =>
-        apiService.deletePhoto(photo.id)
-      );
+    // Clear selection immediately for better UX
+    setSelectedPhotoIds(new Set());
 
-      await Promise.all(deletePromises);
-
-      toast({
-        title: 'Photos deleted',
-        description: `Successfully deleted ${selectedPhotos.length} photo${selectedPhotos.length > 1 ? 's' : ''}`,
-      });
-
-      // Clear selection and refresh
-      setSelectedPhotoIds(new Set());
-      invalidatePhotos();
-    } catch (error) {
-      console.error('Batch delete failed:', error);
-      toast({
-        title: 'Delete failed',
-        description: error instanceof Error ? error.message : 'Failed to delete photos',
-        variant: 'destructive',
-      });
-    }
-  }, [photos, selectedPhotoIds, toast, invalidatePhotos]);
+    // Use mutation with optimistic updates
+    batchDeleteMutation.mutate(
+      selectedPhotos.map(p => p.id),
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Photos deleted',
+            description: `Successfully deleted ${selectedPhotos.length} photo${selectedPhotos.length > 1 ? 's' : ''}`,
+          });
+        },
+        onError: (error) => {
+          console.error('Batch delete failed:', error);
+          toast({
+            title: 'Delete failed',
+            description: error instanceof Error ? error.message : 'Failed to delete photos',
+            variant: 'destructive',
+          });
+        }
+      }
+    );
+  }, [photos, selectedPhotoIds, toast, batchDeleteMutation]);
 
   const handlePhotoDelete = useCallback(
     (photoId: string) => {
@@ -166,10 +210,25 @@ export function GalleryPage() {
         return newSet;
       });
 
-      // Refetch photos
-      invalidatePhotos();
+      // Use mutation with optimistic updates
+      deletePhotoMutation.mutate(photoId, {
+        onSuccess: () => {
+          toast({
+            title: 'Photo deleted',
+            description: 'Photo has been successfully deleted',
+          });
+        },
+        onError: (error) => {
+          console.error('Delete failed:', error);
+          toast({
+            title: 'Delete failed',
+            description: error instanceof Error ? error.message : 'Failed to delete photo',
+            variant: 'destructive',
+          });
+        }
+      });
     },
-    [invalidatePhotos]
+    [deletePhotoMutation, toast]
   );
 
   if (isError) {
@@ -351,21 +410,22 @@ export function GalleryPage() {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-400px)]">
+          <>
             <GalleryGrid
-              photos={photos}
+              photos={filteredPhotos}
               selectedPhotoIds={selectedPhotoIds}
               onPhotoSelect={handlePhotoSelect}
               onPhotoClick={setLightboxPhoto}
               onLoadMore={fetchNextPage}
               hasMore={hasNextPage}
+              pendingItems={pendingItems}
             />
             {isFetchingNextPage && (
               <div className="text-center py-4">
                 <span className="text-sm text-gray-600">Loading more...</span>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 

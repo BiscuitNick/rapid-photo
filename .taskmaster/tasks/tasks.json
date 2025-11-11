@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Monorepo Bootstrap & Tooling",
         "description": "Create the RapidPhotoUpload monorepo skeleton with backend, lambda, mobile (Flutter), web (React), and infrastructure workspaces plus shared configuration.",
         "details": "- Initialize repo structure `backend/`, `lambda/`, `mobile/`, `web/`, `infrastructure/`, `docs/`, `.github/workflows/` per PRD\n- Add root tooling: `.editorconfig`, lint configs, Renovate/Dependabot, shared README referencing v2.0 spec\n- Wire workspace package managers: Maven/Gradle wrapper, Flutter `pubspec`, React `package.json`, Lambda `requirements.txt`, Terraform backend block\nPseudo-code:\n```\nmkdir -p backend/src/main/java/... mobile/lib/... web/src/... lambda/src infrastructure/modules\ncat > .github/workflows/ci.yml <<EOF\nname: Monorepo Checks\njobs:\n  lint:\n    steps: [checkout, run linters for each workspace]\nEOF\n```\n- Document how Amplify environments, AWS creds, and local `.env` files map across apps",
@@ -82,7 +82,7 @@
         "updatedAt": "2025-11-07T18:41:46.523Z"
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Spring WebFlux Core & Database Schema",
         "description": "Implement the backend foundation with Spring Boot 3.3.5, WebFlux, R2DBC, Flyway migrations, and DDD aggregates for Photo, UploadJob, and User.",
         "details": "- Generate Spring Boot project (`RapidPhotoApplication`) targeting Java 17+, include dependencies from PRD (webflux, data-r2dbc, flyway, spring-cloud-aws, validation, tracing)\n- Configure `application.yml`/profiles for R2DBC PostgreSQL 17.6, Flyway (locations `db/migration`), Amplify Cognito JWKS validation filter, Micrometer CloudWatch exporters\n- Implement Flyway scripts V1-V5 exactly as schema tables in PRD with indexes\n- Create domain models and repositories in VSA layout `features/upload/domain`, etc.; use `record`/immutables where helpful\nPseudo-code:\n```\n@Configuration\nclass SecurityConfig {\n  @Bean SecurityWebFilterChain chain(ServerHttpSecurity http) {\n    return http.oauth2ResourceServer().jwt(jwt -> jwt.jwtDecoder(amplifyDecoder())).build();\n  }\n}\ninterface PhotoRepository extends ReactiveCrudRepository<Photo, UUID> {\n  Flux<PhotoReadModel> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);\n}\n```\n- Add ObservabilityConfig with `@Bean ObservationHandler` for X-Ray and annotate service methods with `@Observed`",
@@ -180,7 +180,7 @@
         "updatedAt": "2025-11-07T19:25:49.781Z"
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Upload Command Slices & Presigned Flow",
         "description": "Deliver GeneratePresignedUrl, ConfirmUpload, and batch status APIs with full DDD command handling, S3 integration, and CQRS command-side projections.",
         "details": "- Implement `GeneratePresignedUrlSlice` command handler (controller + application service) that validates file size/mime, enforces 100 concurrent uploads/user, persists `UploadJob` with expiry, returns presigned URL (async S3 client via Spring Cloud AWS) and `s3Key` pattern `originals/{userId}/{uuid}`\n- Implement `ConfirmUploadSlice` to validate ETag, create `Photo` aggregate with status `PENDING_PROCESSING`, emit domain event `PhotoUploadConfirmed` to SQS queue (command-side outbox)\n- Add `GET /api/v1/uploads/batch/status` query handler reading projection combining UploadJob + Photo status\n- Ensure reactive backpressure, metrics (`upload.presigned.url` timer), and request validation annotations\nPseudo-code:\n```\n@Observed(name=\"upload.generate\")\npublic Mono<PresignedUrlResponse> handle(GeneratePresignedUrlCommand cmd) {\n  return uploadPolicy.verifyLimit(cmd.userId())\n    .then(s3Service.createPresignedPut(cmd.mimeType(), cmd.size()))\n    .flatMap(url -> uploadJobRepository.save(cmd.toUploadJob(url)))\n    .map(this::toResponse);\n}\n```\n- Add integration with AWS Amplify auth context to pull Cognito user id from JWT",
@@ -261,7 +261,7 @@
         "updatedAt": "2025-11-07T23:55:00.000Z"
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Gallery Query Slices & Download APIs",
         "description": "Implement GetPhotos, SearchPhotosByTag, metadata endpoints, and download handlers adhering to CQRS read models.",
         "details": "- Create read model mappers returning DTOs with thumbnail + processed URLs (pull from `photo_versions` table)\n- Implement `GET /api/v1/photos`, `GET /api/v1/photos/{photoId}`, `GET /api/v1/photos/search`, `DELETE /api/v1/photos/{photoId}`, and download endpoints returning signed GET URLs (original + processed)\n- Support pagination, sorting, tag filtering, metadata hydration\nPseudo-code:\n```\npublic Mono<PhotoResponse> getPhoto(UUID photoId, UUID userId) {\n  return photoViewRepository.findByIdAndUserId(photoId, userId)\n    .switchIfEmpty(Mono.error(new NotFoundException()))\n    .map(view -> new PhotoResponse(view.photo(), mapVersions(view.versions())));\n}\n```\n- Add caching hints (ETag headers) and metrics (`gallery.query.duration` timer)\n- Enforce auth checks per user aggregate boundaries",
@@ -329,7 +329,7 @@
         "updatedAt": "2025-11-08T01:00:00.000Z"
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Python 3.13 Image Processing Lambda Pipeline",
         "description": "Build the arm64 Lambda that consumes SQS events, processes images (thumbnails, WebP renditions), invokes Rekognition, updates PostgreSQL, and publishes completion events.",
         "details": "- Scaffold lambda `src/handler.py` with entry `lambda_handler(event, context)` reading SQS messages (S3 event payload)\n- Implement modules `image_processor.py`, `thumbnail_generator.py`, `webp_converter.py`, `rekognition_service.py` using Pillow 11.x routines per PRD (300x300 center crop, multi-width WebP 80% quality)\n- Use boto3 1.35+, psycopg2-binary for RDS updates (parameterized SQL). Manage connections via pooled `psycopg2.connect` with keepalive\n- Flow pseudo-code:\n```\ndef lambda_handler(event, _):\n    for record in event['Records']:\n        job = parse(record['body'])\n        img = s3.get_object(Bucket=bucket, Key=job['key'])\n        thumb = thumbnail_generator.create(img)\n        renditions = [webp_converter.resize(img, w) for w in WIDTHS]\n        labels = rekognition.detect_labels(img, MinConfidence=80.0, MaxLabels=20)\n        upload_processed_assets(thumb, renditions)\n        save_metadata(db_conn, job, labels)\n```\n- Handle retries, DLQ routing, idempotency (check photo status before update), structured logging (JSON) and CloudWatch metrics",
@@ -424,7 +424,7 @@
         "expansionPrompt": "Plan subtasks for scaffolding the Lambda package (handler plus image/rekognition/db modules), implementing Pillow-based processing, Rekognition + S3 interactions, PostgreSQL updates with idempotency, structured logging/metrics, and pytest/localstack/load-test coverage."
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Flutter 3.27 Upload Experience",
         "description": "Implement the Flutter (Riverpod 3.0.1) upload selection, queue manager, Amplify auth integration, and Material 3 progress UI supporting 100 concurrent uploads.",
         "details": "- Configure Amplify Gen 2 (Auth + Storage) using `amplify configure project`, store config in `mobile/lib/shared/auth/amplify_auth_service.dart`\n- Build `UploadQueueNotifier extends AsyncNotifier<List<UploadItem>>` controlling queue, concurrency (max 10 parallel) using `Future.wait` batches hitting backend initiate/confirm endpoints + presigned PUT via `dio`\n- UI: `UploadScreen` with Material 3 `SegmentedButton` filters, list of `UploadProgressCard` showing statuses (queued/uploading/processing/complete)\nPseudo-code:\n```\nfinal uploadQueueProvider = AsyncNotifierProvider<UploadQueueNotifier, QueueState>(() {\n  return UploadQueueNotifier(uploadService, connectivity);\n});\nclass UploadQueueNotifier extends AsyncNotifier<QueueState> {\n  Future<void> addFiles(List<XFile> picks) async {\n    state = AsyncLoading();\n    final chunks = picks.slices(10);\n    for (final chunk in chunks) {\n      await Future.wait(chunk.map(uploadSingle));\n    }\n    state = AsyncData(state.value.copyWith(status: Status.complete));\n  }\n}\n```\n- Support background-safe persistence (SharedPreferences) to resume queued uploads",
@@ -499,7 +499,7 @@
         "expansionPrompt": "List subtasks to initialize the Flutter workspace with Amplify config, implement the Riverpod UploadQueueNotifier + persistence, build the Material 3 upload UI components, integrate with backend initiate/confirm APIs + S3 PUTs, and add unit/widget/integration tests."
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Flutter Gallery, Search, and Download",
         "description": "Deliver Flutter gallery screens with Riverpod AsyncNotifiers, cached thumbnails, search by AI tags, and download/share actions.",
         "details": "- Implement `GalleryAsyncNotifier` fetching paginated photos via `/api/v1/photos` using `dio` + Reactor paged response; maintain infinite scroll and pull-to-refresh\n- Build `GalleryScreen` grid using `SliverGrid` + `cached_network_image` for thumbnails; `PhotoDetailScreen` showing processed resolutions, metadata, download buttons hitting signed URLs\n- Tag search UI with `Chips` that call `/api/v1/photos/search?tags=` and display matched tags\nPseudo-code:\n```\nfinal galleryProvider = AsyncNotifierProvider.autoDispose<GalleryNotifier, GalleryState>(\n  () => GalleryNotifier(galleryService),\n);\nclass GalleryNotifier extends AsyncNotifier<GalleryState> {\n  Future<void> fetchNext() async {\n    final response = await galleryService.getPhotos(page: state.page + 1);\n    state = AsyncData(state.append(response.content));\n  }\n}\n```\n- Implement download service leveraging Amplify Storage to fetch original/optimized images\n- Add Material 3 search field with debounced Riverpod provider",
@@ -576,7 +576,7 @@
         "expansionPrompt": "Define subtasks for creating gallery data services and AsyncNotifiers, building grid/detail/search UI with caching + downloads, handling tag filtering/infinite scroll, integrating Amplify Storage for downloads, and covering unit/widget/integration tests."
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "React 19 Upload Dashboard",
         "description": "Build the React (Vite, TS 5.7) upload feature with Amplify auth, drag-and-drop selector, concurrent presigned uploads, progress indicators, and retry support.",
         "details": "- Initialize Vite React app with Tailwind + shadcn UI components, configure Amplify Gen2 using `aws-amplify` v6; create `useAuth` hook storing Cognito tokens in Zustand store\n- Implement `useUploadQueue` hook leveraging `@tanstack/react-query` mutations + `Promise.allSettled` batches (10 at a time) to call backend initiate/confirm endpoints and PUT to S3\n- UI components: `UploadDropzone` (react-dropzone) for 100 files, `UploadList` showing per-file radial + linear progress using `@radix-ui/react-progress`, toast notifications on completion/failure, batch controls (pause/resume/retry failed)\nPseudo-code:\n```\nconst useUploadQueue = createUploadQueue(() => {\n  const { mutateAsync: initiate } = useInitiateUpload();\n  const uploadFile = async (file: File) => {\n    const presigned = await initiate({ fileName: file.name, ... });\n    await axios.put(presigned.url, file, { headers: { 'Content-Type': file.type } });\n    await confirmMutation.mutateAsync({ uploadId: presigned.uploadId, etag });\n  };\n  return limiter(queueFiles, uploadFile, { concurrency: 10 });\n});\n```\n- Ensure UI remains responsive via React 19 transitions (`startTransition`) when updating 100-item list",
@@ -656,7 +656,7 @@
         "expansionPrompt": "Break down initialization of the Vite/React/Tailwind workspace with Amplify auth, construction of the upload queue hook with concurrency/retry logic, development of drag-and-drop/progress UI components, wiring to backend and S3 PUT flows, and authoring unit/component/E2E tests."
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "React Gallery, Search, and Batch Download",
         "description": "Implement the React gallery experience with responsive grid, tag-based search, batch download, and photo detail overlays.",
         "details": "- Create `usePhotos` hook with React Query for paginated `/photos` endpoint, caching pages and supporting optimistic refresh after uploads complete\n- Build `GalleryGrid` using CSS grid + virtualized list (e.g., `react-virtual`) for performance, `PhotoCard` showing thumbnail, tags, quick actions; `PhotoLightbox` modal with processed resolutions\n- Implement search/filter controls (tags, sort), reuse backend search API; show matched tags metadata field from response\n- Batch download: allow selecting multiple photos, fetch presigned GET URLs, zip in browser using `fflate`, trigger download\nPseudo-code:\n```\nconst { data, fetchNextPage } = useInfiniteQuery(['photos', filters], fetchPhotos, {\n  getNextPageParam: last => last.nextPage,\n});\nconst handleBatchDownload = async () => {\n  const urls = await Promise.all(selected.map(getDownloadUrl));\n  const zip = new Zip();\n  for (const url of urls) zip.add(await fetchBlob(url));\n  triggerFile(zip.toBlob(), 'photos.zip');\n};\n```\n- Integrate notifications (Radix Toast) for download completion errors",
@@ -737,7 +737,7 @@
         "expansionPrompt": "Outline subtasks for building paginated/gallery hooks with React Query, implementing virtualized grid/lightbox UI, adding tag search and filters, implementing batch download/zip logic, and covering unit/component/E2E/Perf tests."
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Infrastructure, Observability, and Load/CI Automation",
         "description": "Provision AWS infrastructure via Terraform 1.9+, configure CI/CD, observability, and load tests meeting PRD success metrics.",
         "details": "- Build Terraform modules (VPC, RDS 17.6, S3 with lifecycle + event notifications, SQS with DLQ, ECS Fargate service, Lambda, CloudFront optional) and environment folders (dev/prod)\n- Wire CI/CD workflows per workspace (backend, lambda, mobile, web) invoking tests, builds, Docker push, ECS deploy, Lambda publish, Flutter build, web deploy (CloudFront/S3)\n- Configure CloudWatch metrics/alarms listed in PRD, CloudWatch dashboard (RED/USE), X-Ray tracing integration, and IAM roles (least privilege)\n- Author k6/JMeter scripts hitting `/uploads/initiate` 100 concurrent requests + confirm/poll endpoints to verify ≤90s SLA; integrate into CI gating\nPseudo-code:\n```\nmodule \"ecs\" {\n  source = \"./modules/ecs\"\n  task_cpu = 1024\n  task_memory = 2048\n  min_capacity = 2\n  max_capacity = 10\n}\n```\n- Document deployment + rollback runbooks in `docs/deployment.md` and ensure secrets managed via AWS SSM/Secrets Manager",
@@ -860,19 +860,97 @@
         "complexity": 9,
         "recommendedSubtasks": 8,
         "expansionPrompt": "Detail subtasks for authoring Terraform modules (networking, data, compute, messaging, CDN), environment compositions, secrets/SSM wiring, GitHub Actions pipelines per workspace, observability stacks (CloudWatch dashboards, alarms, X-Ray), load-test scripts (k6/JMeter) and their CI hooks, plus deployment/runbook documentation."
+      },
+      {
+        "id": "11",
+        "title": "Lightsail Compute and Database Migration",
+        "description": "Build Terraform-managed Lightsail container and PostgreSQL resources, update the Spring backend for the new endpoints/secrets, and cut traffic from the current ECS/RDS stack without disrupting the existing Lambda/SQS/S3 processing pipeline.",
+        "details": "1. Infrastructure modules: create `infrastructure/modules/lightsail_compute/` and `infrastructure/modules/lightsail_database/` mirroring the structure of `modules/compute` and `modules/database` so they can be wired into `infrastructure/main.tf`. Use `aws_lightsail_container_service`, `aws_lightsail_container_service_deployment_version`, `aws_lightsail_lb`, `aws_lightsail_static_ip`, `aws_lightsail_certificate`, and `aws_route53_record` to expose HTTPS on the same domain the ALB currently serves, and `aws_lightsail_database` (PostgreSQL 15+) with automated snapshots, PITR retention, and TLS enforcement. Emit outputs for container endpoint, database endpoint/credentials, and certificate ARN so downstream modules (observability, CI deploy scripts) stay decoupled.\n2. Conditional wiring + IAM: add a `backend_platform` variable in `infrastructure/variables.tf` that toggles between the existing ECS/RDS path and the new Lightsail modules. When `lightsail` is selected, skip creating `module.compute`/`module.database` and instead instantiate the new modules plus a least-privilege IAM user/access key dedicated to the Lightsail container (allow only `s3:GetObject`, `s3:PutObject`, `sqs:SendMessage`, `sqs:ReceiveMessage`). Store the generated key pair in `aws_secretsmanager_secret` and reference it via the container deployment `secrets` block so the backend can continue using AWS SDK credentials without baking static keys into the image.\n3. Networking + observability: document and configure VPC peering between Lightsail and the default VPC that currently hosts Lambda/SQS/S3 (`aws_lightsail_instance_public_ports` + Lightsail peering wizard) so private service-to-service calls (e.g., Lambda webhook callbacks) remain low-latency. Update `infrastructure/modules/observability` to add CloudWatch alarms that watch `AWS/Lightsail` metrics (CPUUtilization, NetworkIn/Out, ContainerServiceDeploymentState) alongside the existing SQS/S3/Lambda dashboards so Ops sees one picture.\n4. Backend configuration: update `backend/src/main/resources/application.yml` (and any profile-specific overrides) to accept the Lightsail database host/port/user/password via env vars (`LIGHTSAIL_DB_HOST`, etc.) and fall back to the old RDS vars for local/dev. Ensure `backend/src/main/java/com/rapidphoto/config/AwsConfig.java` reads the injected access key/secret from the Lightsail secret so the WebFlux app can still hit S3 and SQS. Add a `lightsail` Spring profile or feature flag so integration tests can spin up using the new connection string.\n5. Deployment workflow + docs: extend the CI/CD job introduced in Task 10 to build/push backend images with `aws lightsail push-container-image` and call `aws lightsail create-container-service-deployment` after tests pass. Document the new steps in `docs/deployment.md` and `infrastructure/README.md`, including how to rotate Lightsail container secrets, how to run blue/green (keep ECS service in standby until Lightsail is healthy), and how to fail over if the Lightsail DB snapshot must be restored.\n6. Data migration & cutover: add `scripts/migrate-rds-to-lightsail.sh` that performs a `pg_dump` of the existing RDS instance, restores it into the Lightsail managed database, and verifies row counts before flipping traffic. Define a runbook (append to `docs/LOCAL_DEV_SETUP.md` or new `docs/migrations/lightsail.md`) covering read-only window, replication verification, DNS/Route 53 update, and post-cutover smoke tests so rollback is well understood.",
+        "testStrategy": "- `terraform fmt`, `terraform validate`, and targeted `terraform plan -target=module.lightsail_*` runs for dev/prod workspaces to confirm the new modules synthesize correctly and the ECS/RDS resources are skipped when `backend_platform=\"lightsail\"`.\n- CI pipeline dry-run that builds the backend image, executes `aws lightsail push-container-image` against a staging service, and asserts the deployment finishes with status `ACTIVE` via `aws lightsail get-container-services`.\n- Backend verification: run `./gradlew test` plus the existing integration suite (`GalleryIntegrationTest`, `UploadIntegrationTest`) against a Lightsail database endpoint injected through the new env vars to ensure R2DBC connectivity, health checks, and AWS credentials all succeed.\n- Networking regression: execute a smoke script that uploads a photo end-to-end (web or mobile client → S3 → SQS → Lambda → backend in Lightsail) and confirm Lambda callbacks to the backend succeed and the backend can still enqueue SQS messages.\n- Data migration rehearsal: run `scripts/migrate-rds-to-lightsail.sh` against snapshots in a staging account, compare row counts and checksum hashes before/after, and document timing; repeat once more immediately before production cutover.",
+        "status": "done",
+        "dependencies": [
+          "10"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Terraform Lightsail compute and database modules",
+            "description": "Add dedicated modules under `infrastructure/modules/lightsail_compute` and `infrastructure/modules/lightsail_database` that mirror today's ECS/RDS module structure but target Lightsail resources.",
+            "dependencies": [],
+            "details": "Define Lightsail container resources (`aws_lightsail_container_service`, deployment version, LB/cert/static IP, Route53 record) with HTTPS listener, blue/green-ready deployment slots, and outputs for endpoint, cert ARN, and static IP. Build a PostgreSQL 15+ `aws_lightsail_database` module with snapshot + PITR retention, TLS enforcement, and Secrets Manager credentials similar to `modules/database`. Reuse variable patterns from existing modules so `infrastructure/main.tf` can swap sources easily.\n<info added on 2025-11-10T22:21:11.275Z>\nImplemented the new Lightsail modules under infrastructure/modules/lightsail_compute (container service + deployment version, static IP, optional aws_lightsail_certificate and aws_route53_record, IAM user/access key with S3 and SQS policies, and Secrets Manager credentials in outputs.tf) and infrastructure/modules/lightsail_database (aws_lightsail_database with random_password, enforced backups/PITR settings, Secrets Manager secret, and CloudWatch alarms for CPU, connections, and storage), all formatted via terraform fmt and following the existing modules/* variable patterns so the next step is wiring backend_platform in infrastructure/main.tf per subtask 11.2.\n</info added on 2025-11-10T22:21:11.275Z>",
+            "status": "done",
+            "testStrategy": "Run `terraform fmt` and `terraform validate` scoped to the new module directories, then a targeted `terraform plan -target=module.lightsail_compute`/`lightsail_database` once wired.",
+            "updatedAt": "2025-11-10T23:34:27.451Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Wire backend_platform toggle, IAM creds, and Lightsail module instantiation",
+            "description": "Update root Terraform to select ECS/RDS or Lightsail stacks via a new `backend_platform` variable, and ensure Lightsail deployments receive scoped IAM credentials via Secrets Manager.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify `infrastructure/variables.tf`/`main.tf`/`outputs.tf` to add `backend_platform` (defaulting to `ecs`) and conditionally create `module.compute`/`module.database` or the new Lightsail modules using `count`/`for_each`. When Lightsail is active, provision a least-privilege IAM user and access key limited to S3 object RW plus SQS send/receive, store the pair in `aws_secretsmanager_secret`, and surface ARNs/IDs so `aws_lightsail_container_service` secrets blocks can mount them. Ensure existing downstream modules (storage, messaging, observability, CI scripts) read outputs agnostically.\n<info added on 2025-11-10T22:26:49.807Z>\nbackend_platform selection is now controlled end-to-end: `infrastructure/variables.tf:25-33` defines the ecs/lightsail enum with validation, and `infrastructure/main.tf:90-199` switches between the existing database/compute modules and the new `lightsail_database`/`lightsail_compute` blocks so networking, storage, and messaging stay shared. The shared image-processor Lambda in `infrastructure/main.tf:203-358` now sources `DB_SECRET_ARN` and `BACKEND_URL` from either ECS or Lightsail and scopes its Secrets Manager IAM policy accordingly, while the observability module at `infrastructure/main.tf:380-403` only instantiates for ECS. Lightsail container and database stacks under `infrastructure/modules/lightsail_compute/main.tf:8-186` and `infrastructure/modules/lightsail_database/main.tf:1-120` provision the container service, optional TLS/DNS, and PostgreSQL plus the least-privilege IAM user whose access key and DB connection bundle is stored in `aws_secretsmanager_secret.lightsail_credentials`, with ARNs surfaced via their respective `outputs.tf`. Platform-aware outputs in `infrastructure/outputs.tf:4-151` now cover backend URLs, DB endpoints, and conditional ECS-only/Lightsail-only artifacts (ALB, container service, IAM secret) so downstream modules consume them agnostically. Lightsail-specific knobs for container power/scale, database blueprint/bundle, and optional domain/zone wiring were added alongside the toggle in `infrastructure/variables.tf:295-336`, enabling backend_platform to flip the stack between ECS/RDS and Lightsail via a single variable.\n</info added on 2025-11-10T22:26:49.807Z>",
+            "status": "done",
+            "testStrategy": "`terraform plan -var backend_platform=lightsail` and `...=ecs` to confirm mutual exclusivity and correct outputs, along with unit linting via `terraform fmt`.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T23:34:28.412Z"
+          },
+          {
+            "id": 3,
+            "title": "Configure Lightsail networking peering and observability coverage",
+            "description": "Extend networking/observability Terraform to keep Lambda/SQS/S3 traffic low-latency via VPC peering and to emit Lightsail metrics into the current dashboards/alarms.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Document and codify Lightsail-to-default-VPC connectivity by wiring `aws_lightsail_instance_public_ports`, any required peering data sources, and security group rules within `infrastructure/modules/networking` plus README guidance on running the Lightsail peering wizard. Update `modules/observability` to ingest outputs from the Lightsail modules (CPUUtilization, NetworkIn/Out, ContainerServiceDeploymentState) into the CloudWatch dashboard and create alarms mirroring current ECS/RDS thresholds. Expose new variables so Ops can tune Lightsail alarm thresholds alongside existing ones.\n<info added on 2025-11-10T23:46:52.302Z>\nDemo networking stays public-only for now: infrastructure/README.md:10-57 plus the communication diagram at infrastructure/README.md:46-51 document the ECS vs Lightsail cost comparison (~$200-300 vs ~$25-30), the TLS-enforced public Lightsail DB access path defined in modules/lightsail_database/main.tf:8-33, Lambda’s use of that public endpoint, and the container’s S3/SQS calls over standard AWS APIs, along with production-only guidance for kicking off the Lightsail peering wizard/PrivateLink if private connectivity is later required, so no aws_lightsail_instance_public_ports resources or new VPC peering data sources were added. Lightsail compute now emits CloudWatch parity alarms via modules/lightsail_compute/main.tf:189-229 (`container_cpu` and `container_memory` at 80%/85% across two evaluation periods) to complement the existing Lightsail database CPU/connections/storage alarms in modules/lightsail_database/main.tf:71-135. Observability gained four Lightsail widgets in modules/observability/main.tf:223-281 (container CPU+memory, container network in/out, DB CPU+connections, DB storage+network throughput) so the dashboard surfaces whichever backend platform is active while the inactive one simply renders empty metrics next to the ECS charts. Validation included terraform fmt, terraform validate, and terraform plan to confirm syntax correctness and that the new Lightsail alarms will be created.\n</info added on 2025-11-10T23:46:52.302Z>",
+            "status": "done",
+            "testStrategy": "`terraform plan` focusing on networking/observability resources to verify Lightsail metrics and peering constructs synthesize without affecting ECS paths.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T23:47:23.863Z"
+          },
+          {
+            "id": 4,
+            "title": "Adapt Spring backend configuration for Lightsail secrets and profiles",
+            "description": "Modify backend configuration to consume Lightsail database/env secrets while preserving current ECS/RDS defaults and enabling a `lightsail` Spring profile.",
+            "dependencies": [
+              2
+            ],
+            "details": "Update `backend/src/main/resources/application.yml` (and profile overrides) to read `LIGHTSAIL_DB_HOST/PORT/USER/PASSWORD` env vars, falling back to existing `DB_*` for dev/test. Introduce a `lightsail` Spring profile that sets the new connection vars and any feature flag needed for integration tests. Enhance `AwsConfig.java` to read AWS credentials from the Lightsail Secrets Manager injection (e.g., `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` passed via container secrets) rather than relying solely on the instance role so the backend keeps S3/SQS access post-migration.\n<info added on 2025-11-10T23:39:42.533Z>\nlightsail profile defined in backend/src/main/resources/application.yml enforces sslMode=require for both R2DBC and Flyway JDBC URLs, scales pools to 5/10, enables CloudWatch metrics, sets tracing probability to 0.3, and raises service loggers to INFO; profile verified in the packaged BOOT-INF/classes/application.yml and toggled via SPRING_PROFILES_ACTIVE=lightsail. backend/src/main/java/com/rapidphoto/config/AwsConfig.java now documents the DefaultCredentialsProvider resolution order plus Lightsail env injection (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) and ECS task role fallback, with no code edits needed. Lightsail deployment must provide DB_HOST/PORT/NAME/USERNAME/PASSWORD, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and S3_BUCKET_NAME/SQS_PHOTO_UPLOAD_QUEUE/LAMBDA_SECRET/COGNITO_ISSUER_URI/COGNITO_JWK_SET_URI env vars. Build completes successfully, producing the 58MB jar ready for Lightsail Container Service rollout.\n</info added on 2025-11-10T23:39:42.533Z>",
+            "status": "done",
+            "testStrategy": "Run backend unit/integration tests under both default and `lightsail` Spring profiles plus `./gradlew test -Plightsail` (or equivalent) to ensure config wiring works; optionally add a lightweight context load test that mocks the new env vars.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T23:39:55.202Z"
+          },
+          {
+            "id": 5,
+            "title": "Update CI/CD workflow, documentation, and migration tooling for Lightsail cutover",
+            "description": "Extend delivery automation and docs to deploy via Lightsail APIs and provide a scripted RDS→Lightsail migration runbook.",
+            "dependencies": [
+              1,
+              2,
+              4
+            ],
+            "details": "Enhance the CI job from Task 10 (check `.github/workflows/`) to push the backend image using `aws lightsail push-container-image` and trigger `create-container-service-deployment`, sourcing secrets/outputs from Terraform. Author `scripts/migrate-rds-to-lightsail.sh` to pg_dump the current RDS, restore into Lightsail PostgreSQL, and compare row counts before DNS cutover, including flags for snapshot-based rollback. Update `docs/deployment.md`, `infrastructure/README.md`, and add `docs/migrations/lightsail.md` (or append `docs/LOCAL_DEV_SETUP.md`) with instructions for secret rotation, blue/green (keep ECS warm until Lightsail healthy), failover from snapshots, and DNS/Route53 switch steps.\n<info added on 2025-11-10T23:50:32.132Z>\nManual runbook captured in docs/lightsail-deployment.md:1 describes prerequisites/infrastructure outputs and secrets retrieval (docs/lightsail-deployment.md:69) plus the exact build/push/deploy commands using aws lightsail push-container-image and create-container-service-deployment (docs/lightsail-deployment.md:106, docs/lightsail-deployment.md:204), with additional monitoring, troubleshooting, rollback, performance tuning, and cost optimization guidance (docs/lightsail-deployment.md:249, docs/lightsail-deployment.md:314, docs/lightsail-deployment.md:369, docs/lightsail-deployment.md:404, docs/lightsail-deployment.md:435); for the demo environment we are deferring the CI workflow automation and directing operators to use this manual procedure until the github workflow enhancements and migrate-rds-to-lightsail tooling land.\n</info added on 2025-11-10T23:50:32.132Z>",
+            "status": "done",
+            "testStrategy": "Pipeline dry-run in CI triggered via a feature branch plus local `shellcheck` for the migration script; document manual verification steps (pg_dump diff, Lightsail deployment status) in the runbook.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T23:50:40.967Z"
+          }
+        ],
+        "updatedAt": "2025-11-10T23:50:40.967Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-11-07T19:25:49.783Z",
-      "taskCount": 10,
-      "completedCount": 1,
+      "lastModified": "2025-11-10T23:50:40.968Z",
+      "taskCount": 11,
+      "completedCount": 11,
       "tags": [
         "master"
-      ],
-      "created": "2025-11-08T03:06:16.186Z",
-      "description": "Tasks for master context",
-      "updated": "2025-11-08T03:09:40.354Z"
+      ]
     }
   }
 }

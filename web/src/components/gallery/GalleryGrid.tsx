@@ -1,11 +1,16 @@
 /**
- * Virtualized gallery grid component
+ * Responsive gallery grid component with intersection-based infinite scroll
  */
 
 import { useRef, useEffect } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { Photo } from '../../types/api';
 import { PhotoCard } from './PhotoCard';
+import { GallerySkeletonCard } from './GallerySkeletonCard';
+
+export interface PendingGridItem {
+  key: string;
+  photo: Photo | null;
+}
 
 interface GalleryGridProps {
   photos: Photo[];
@@ -14,9 +19,8 @@ interface GalleryGridProps {
   onPhotoClick: (photo: Photo) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  pendingItems?: PendingGridItem[];
 }
-
-const COLUMN_COUNT = 4;
 
 export function GalleryGrid({
   photos,
@@ -25,37 +29,43 @@ export function GalleryGrid({
   onPhotoClick,
   onLoadMore,
   hasMore = false,
+  pendingItems = [],
 }: GalleryGridProps) {
-  const parentRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  // Calculate how many rows we need
-  const rowCount = Math.ceil(photos.length / COLUMN_COUNT);
-
-  const rowVirtualizer = useVirtualizer({
-    count: rowCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 300, // Estimated row height
-    overscan: 5,
-  });
-
-  const virtualRows = rowVirtualizer.getVirtualItems();
-
-  // Load more when near the end
+  // Load additional photos when the sentinel enters the viewport
   useEffect(() => {
-    const [lastItem] = [...virtualRows].reverse();
-
-    if (!lastItem) {
+    if (!hasMore || !onLoadMore) {
       return;
     }
 
-    if (
-      lastItem.index >= rowCount - 1 &&
-      hasMore &&
-      onLoadMore
-    ) {
-      onLoadMore();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+        if (firstEntry?.isIntersecting) {
+          onLoadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    );
+
+    const current = loadMoreRef.current;
+
+    if (current) {
+      observer.observe(current);
     }
-  }, [virtualRows, rowCount, hasMore, onLoadMore]);
+
+    return () => {
+      if (current) {
+        observer.unobserve(current);
+      }
+      observer.disconnect();
+    };
+  }, [hasMore, onLoadMore]);
 
   if (photos.length === 0) {
     return (
@@ -83,51 +93,40 @@ export function GalleryGrid({
 
   return (
     <div
-      ref={parentRef}
-      className="h-full overflow-auto"
+      className="flex flex-col gap-6"
     >
-      <div
-        style={{
-          height: `${rowVirtualizer.getTotalSize()}px`,
-          position: 'relative',
-        }}
-      >
-        {virtualRows.map((virtualRow) => {
-          const startIndex = virtualRow.index * COLUMN_COUNT;
-          const rowPhotos = photos.slice(startIndex, startIndex + COLUMN_COUNT);
-
-          return (
-            <div
-              key={virtualRow.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              <div
-                className="grid gap-4"
-                style={{
-                  gridTemplateColumns: `repeat(${COLUMN_COUNT}, 1fr)`,
-                }}
-              >
-                {rowPhotos.map((photo) => (
-                  <PhotoCard
-                    key={photo.id}
-                    photo={photo}
-                    isSelected={selectedPhotoIds.has(photo.id)}
-                    onSelect={onPhotoSelect}
-                    onClick={onPhotoClick}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        {pendingItems.map((item) =>
+          item.photo ? (
+            <PhotoCard
+              key={item.key}
+              photo={item.photo}
+              isSelected={selectedPhotoIds.has(item.photo.id)}
+              onSelect={onPhotoSelect}
+              onClick={onPhotoClick}
+            />
+          ) : (
+            <GallerySkeletonCard key={item.key} />
+          )
+        )}
+        {photos.map((photo) => (
+          <PhotoCard
+            key={photo.id}
+            photo={photo}
+            isSelected={selectedPhotoIds.has(photo.id)}
+            onSelect={onPhotoSelect}
+            onClick={onPhotoClick}
+          />
+        ))}
       </div>
+
+      {hasMore && (
+        <div
+          ref={loadMoreRef}
+          className="h-1 w-full"
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 }

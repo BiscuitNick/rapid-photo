@@ -73,7 +73,7 @@ class GeneratePresignedUrlHandlerTest {
                 .mimeType(command.mimeType())
                 .build();
 
-        when(uploadJobRepository.save(any(UploadJob.class))).thenReturn(Mono.just(savedJob));
+        when(uploadJobRepository.saveWithEnumCast(any(UploadJob.class))).thenReturn(Mono.just(savedJob));
 
         // When & Then
         StepVerifier.create(handler.handle(command))
@@ -91,7 +91,7 @@ class GeneratePresignedUrlHandlerTest {
         verify(uploadPolicyService).verifyUploadLimit(userId);
         verify(uploadPolicyService).validateFile(command.fileSize(), command.mimeType());
         verify(s3PresignedUrlService).generatePresignedPutUrl(userId, command.fileName(), command.mimeType());
-        verify(uploadJobRepository).save(any(UploadJob.class));
+        verify(uploadJobRepository).saveWithEnumCast(any(UploadJob.class));
     }
 
     @Test
@@ -116,7 +116,7 @@ class GeneratePresignedUrlHandlerTest {
         verify(uploadPolicyService).verifyUploadLimit(userId);
         verify(uploadPolicyService, never()).validateFile(any(), any());
         verify(s3PresignedUrlService, never()).generatePresignedPutUrl(any(), any(), any());
-        verify(uploadJobRepository, never()).save(any());
+        verify(uploadJobRepository, never()).saveWithEnumCast(any());
     }
 
     @Test
@@ -142,6 +142,6 @@ class GeneratePresignedUrlHandlerTest {
         verify(uploadPolicyService).verifyUploadLimit(userId);
         verify(uploadPolicyService).validateFile(command.fileSize(), command.mimeType());
         verify(s3PresignedUrlService, never()).generatePresignedPutUrl(any(), any(), any());
-        verify(uploadJobRepository, never()).save(any());
+        verify(uploadJobRepository, never()).saveWithEnumCast(any());
     }
 }

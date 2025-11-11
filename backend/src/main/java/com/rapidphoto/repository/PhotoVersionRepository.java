@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -16,6 +17,30 @@ import java.util.UUID;
  */
 @Repository
 public interface PhotoVersionRepository extends ReactiveCrudRepository<PhotoVersion, UUID> {
+
+    @Query("""
+            INSERT INTO photo_versions (photo_id, version_type, s3_key, file_size, width, height, mime_type, created_at)
+            VALUES (:photoId, :versionType::photo_version_type, :s3Key, :fileSize, :width, :height, :mimeType, :createdAt)
+            RETURNING *
+            """)
+    Mono<PhotoVersion> insert(UUID photoId, PhotoVersionType versionType, String s3Key,
+                              Long fileSize, Integer width, Integer height,
+                              String mimeType, Instant createdAt);
+
+    default Mono<PhotoVersion> saveWithEnumCast(PhotoVersion version) {
+        Instant createdAt = version.getCreatedAt() != null ? version.getCreatedAt() : Instant.now();
+
+        return insert(
+                version.getPhotoId(),
+                version.getVersionType(),
+                version.getS3Key(),
+                version.getFileSize(),
+                version.getWidth(),
+                version.getHeight(),
+                version.getMimeType(),
+                createdAt
+        );
+    }
 
     /**
      * Find all versions for a photo.

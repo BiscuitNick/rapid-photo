@@ -1,0 +1,1 @@
+"""RapidPhoto Lambda package."""

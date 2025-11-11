@@ -17,7 +17,7 @@ from src.s3_service import (
 class TestS3Service:
     """Test suite for S3 service functions"""
 
-    def setup_method(self):
+    def setup_method(self, _method):
         """Setup S3 mock before each test"""
         self.s3_client = boto3.client('s3', region_name='us-east-1')
         self.bucket = 'test-bucket'

@@ -57,7 +57,10 @@ export type UploadItemStatus =
  */
 export interface UploadItem {
   id: string;
-  file: File;
+  file?: File;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
   status: UploadItemStatus;
   progress: number;
   uploadId?: string;

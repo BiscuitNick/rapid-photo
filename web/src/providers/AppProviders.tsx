@@ -24,7 +24,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Configure Amplify on mount
-    configureAmplify();
+    configureAmplify().catch((error) => {
+      console.error('Failed to configure Amplify:', error);
+    });
 
     // Check authentication status
     checkAuth();

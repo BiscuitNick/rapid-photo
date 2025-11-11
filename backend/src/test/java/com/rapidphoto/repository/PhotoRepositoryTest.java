@@ -91,7 +91,7 @@ class PhotoRepositoryTest {
                 .status(UploadJobStatus.CONFIRMED.name())
                 .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
-        testUploadJob = uploadJobRepository.save(testUploadJob).block();
+        testUploadJob = uploadJobRepository.saveWithEnumCast(testUploadJob).block();
     }
 
     @Test
@@ -105,7 +105,7 @@ class PhotoRepositoryTest {
                 .fileName("test-photo.jpg")
                 .fileSize(1024L * 1024L)
                 .mimeType("image/jpeg")
-                .status(PhotoStatus.PENDING_PROCESSING.name())
+                .status(PhotoStatus.PENDING_PROCESSING)
                 .build();
 
         // When & Then
@@ -113,7 +113,7 @@ class PhotoRepositoryTest {
                 .assertNext(saved -> {
                     assertThat(saved.getId()).isNotNull();
                     assertThat(saved.getUserId()).isEqualTo(testUser.getId());
-                    assertThat(saved.getStatus()).isEqualTo(PhotoStatus.PENDING_PROCESSING.name());
+                    assertThat(saved.getStatus()).isEqualTo(PhotoStatus.PENDING_PROCESSING);
                 })
                 .verifyComplete();
     }
@@ -272,10 +272,34 @@ class PhotoRepositoryTest {
         // Then
         StepVerifier.create(photoRepository.findById(photo.getId()))
                 .assertNext(found -> {
-                    assertThat(found.getStatus()).isEqualTo(PhotoStatus.READY.name());
+                    assertThat(found.getStatus()).isEqualTo(PhotoStatus.READY);
                     assertThat(found.getWidth()).isEqualTo(1920);
                     assertThat(found.getHeight()).isEqualTo(1080);
                     assertThat(found.getProcessedAt()).isNotNull();
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldUpdateProcessingResultsWithEnumCast() {
+        Photo photo = createAndSavePhoto("test-metadata.jpg", PhotoStatus.PENDING_PROCESSING);
+        Instant processedAt = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+        photoRepository.updateProcessingResults(
+                photo.getId(),
+                PhotoStatus.READY.name(),
+                4000,
+                3000,
+                processedAt,
+                processedAt
+        ).block();
+
+        StepVerifier.create(photoRepository.findById(photo.getId()))
+                .assertNext(found -> {
+                    assertThat(found.getStatus()).isEqualTo(PhotoStatus.READY);
+                    assertThat(found.getWidth()).isEqualTo(4000);
+                    assertThat(found.getHeight()).isEqualTo(3000);
+                    assertThat(found.getProcessedAt()).isEqualTo(processedAt);
                 })
                 .verifyComplete();
     }
@@ -304,7 +328,7 @@ class PhotoRepositoryTest {
                 .fileName(fileName)
                 .fileSize(1024L * 1024L)
                 .mimeType("image/jpeg")
-                .status(status.name())
+                .status(status)
                 .build();
         return photoRepository.saveWithEnumCast(photo).block();
     }

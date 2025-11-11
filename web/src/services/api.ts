@@ -71,6 +71,15 @@ class ApiService {
     );
   }
 
+  private appendCacheBuster(params: URLSearchParams) {
+    params.append('_', Date.now().toString());
+  }
+
+  private withCacheBuster(path: string): string {
+    const separator = path.includes('?') ? '&' : '?';
+    return `${path}${separator}_=${Date.now()}`;
+  }
+
   /**
    * Initiate upload and get presigned URL
    */
@@ -103,7 +112,7 @@ class ApiService {
    */
   async getBatchStatus(): Promise<BatchUploadStatusResponse> {
     const response = await this.client.get<BatchUploadStatusResponse>(
-      '/api/v1/uploads/batch/status'
+      this.withCacheBuster('/api/v1/uploads/batch/status')
     );
     return response.data;
   }
@@ -148,6 +157,7 @@ class ApiService {
     if (params.page !== undefined) queryParams.append('page', params.page.toString());
     if (params.size !== undefined) queryParams.append('size', params.size.toString());
     if (params.sort) queryParams.append('sort', params.sort);
+    this.appendCacheBuster(queryParams);
 
     const url = `/api/v1/photos?${queryParams.toString()}`;
     const response = await this.client.get<PagedResponse<Photo>>(url);
@@ -168,6 +178,7 @@ class ApiService {
     if (params.tags && params.tags.length > 0) {
       params.tags.forEach(tag => queryParams.append('tags', tag));
     }
+    this.appendCacheBuster(queryParams);
 
     const response = await this.client.get<PagedResponse<Photo>>(
       `/api/v1/photos/search?${queryParams.toString()}`
@@ -179,7 +190,9 @@ class ApiService {
    * Get single photo by ID with full details
    */
   async getPhoto(photoId: string): Promise<PhotoDetail> {
-    const response = await this.client.get<PhotoDetail>(`/api/v1/photos/${photoId}`);
+    const response = await this.client.get<PhotoDetail>(
+      this.withCacheBuster(`/api/v1/photos/${photoId}`)
+    );
     return response.data;
   }
 
@@ -195,7 +208,7 @@ class ApiService {
    */
   async getDownloadUrl(photoId: string, version: string = 'original'): Promise<DownloadUrlResponse> {
     const response = await this.client.get<DownloadUrlResponse>(
-      `/api/v1/photos/${photoId}/download/${version}`
+      this.withCacheBuster(`/api/v1/photos/${photoId}/download/${version}`)
     );
     return response.data;
   }

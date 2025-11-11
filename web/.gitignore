@@ -16,6 +16,7 @@ dist-ssr
 coverage
 
 # Amplify
-amplify_outputs.json
+# Note: amplify_outputs.json is committed to repo for deployment
+# It doesn't contain secrets, only public resource IDs
 .amplify
 ampx-*
