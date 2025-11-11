@@ -3,6 +3,11 @@
 environment = "dev"
 aws_region  = "us-east-1"
 
+# Platform Selection: "ecs" or "lightsail"
+# - ecs: Full ECS Fargate with ALB (~$200-300/month)
+# - lightsail: Cost-optimized Lightsail containers (~$25-30/month)
+backend_platform = "lightsail"
+
 # Networking
 vpc_cidr         = "10.0.0.0/16"
 az_count         = 2

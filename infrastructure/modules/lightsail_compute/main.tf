@@ -18,56 +18,67 @@ resource "aws_lightsail_container_service" "backend" {
 }
 
 # ===== Container Service Deployment =====
-resource "aws_lightsail_container_service_deployment_version" "backend" {
-  container {
-    container_name = "backend"
-    image          = var.backend_docker_image
-
-    environment = {
-      SPRING_PROFILES_ACTIVE = var.environment
-      AWS_REGION             = var.aws_region
-      S3_BUCKET_NAME         = var.s3_bucket_name
-      SQS_QUEUE_URL          = var.sqs_queue_url
-      SQS_PHOTO_UPLOAD_QUEUE = var.sqs_queue_url
-      DB_SSL_MODE            = "require"
-      LAMBDA_SECRET          = var.lambda_secret
-      COGNITO_ISSUER_URI     = var.cognito_issuer_uri
-      COGNITO_JWK_SET_URI    = var.cognito_jwk_set_uri
-    }
-
-    # Secrets will be injected via AWS credentials
-    # Database credentials from Lightsail database connection
-    ports = {
-      8080 = "HTTP"
-    }
-  }
-
-  public_endpoint {
-    container_name = "backend"
-    container_port = 8080
-
-    health_check {
-      healthy_threshold   = 2
-      unhealthy_threshold = 3
-      timeout_seconds     = 5
-      interval_seconds    = 30
-      path                = "/actuator/health"
-      success_codes       = "200"
-    }
-  }
-
-  service_name = aws_lightsail_container_service.backend.name
-}
+# NOTE: Deployments are managed manually via AWS CLI/Console
+# See docs/lightsail-deployment.md for deployment procedures
+# Reason: Deployments require Docker images which need to be built and pushed first
+#
+# resource "aws_lightsail_container_service_deployment_version" "backend" {
+#   container {
+#     container_name = "backend"
+#     image          = var.backend_docker_image
+#
+#     environment = {
+#       SPRING_PROFILES_ACTIVE = var.environment
+#       AWS_REGION             = var.aws_region
+#       S3_BUCKET_NAME         = var.s3_bucket_name
+#       SQS_QUEUE_URL          = var.sqs_queue_url
+#       SQS_PHOTO_UPLOAD_QUEUE = var.sqs_queue_url
+#       DB_SSL_MODE            = "require"
+#       LAMBDA_SECRET          = var.lambda_secret
+#       COGNITO_ISSUER_URI     = var.cognito_issuer_uri
+#       COGNITO_JWK_SET_URI    = var.cognito_jwk_set_uri
+#     }
+#
+#     # Secrets will be injected via AWS credentials
+#     # Database credentials from Lightsail database connection
+#     ports = {
+#       8080 = "HTTP"
+#     }
+#   }
+#
+#   public_endpoint {
+#     container_name = "backend"
+#     container_port = 8080
+#
+#     health_check {
+#       healthy_threshold   = 2
+#       unhealthy_threshold = 3
+#       timeout_seconds     = 5
+#       interval_seconds    = 30
+#       path                = "/actuator/health"
+#       success_codes       = "200"
+#     }
+#   }
+#
+#   service_name = aws_lightsail_container_service.backend.name
+# }
 
 # ===== Static IP for Load Balancer =====
+# NOTE: Lightsail container services get a public endpoint URL automatically
+# Static IPs are for EC2 instances, not container services
+# Container service URL: https://<service-name>.<random-id>.<region>.cs.amazonlightsail.com/
+#
 resource "aws_lightsail_static_ip" "backend" {
   name = "${var.project_name}-${var.environment}-backend-ip"
 }
 
-resource "aws_lightsail_static_ip_attachment" "backend" {
-  static_ip_name = aws_lightsail_static_ip.backend.name
-  instance_name  = aws_lightsail_container_service.backend.name
-}
+# NOTE: Static IP attachment doesn't work for container services
+# Commented out to prevent Terraform errors
+#
+# resource "aws_lightsail_static_ip_attachment" "backend" {
+#   static_ip_name = aws_lightsail_static_ip.backend.name
+#   instance_name  = aws_lightsail_container_service.backend.name
+# }
 
 # ===== TLS Certificate (if custom domain provided) =====
 resource "aws_lightsail_certificate" "backend" {
