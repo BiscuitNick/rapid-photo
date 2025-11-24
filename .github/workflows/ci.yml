@@ -24,7 +24,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       infrastructure: ${{ steps.filter.outputs.infrastructure }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -54,7 +54,7 @@ jobs:
       run:
         working-directory: ./backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -83,7 +83,7 @@ jobs:
       run:
         working-directory: ./lambda
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
@@ -109,7 +109,7 @@ jobs:
       run:
         working-directory: ./mobile
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
         uses: subosito/flutter-action@v2
@@ -138,7 +138,7 @@ jobs:
       run:
         working-directory: ./web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -164,7 +164,7 @@ jobs:
       run:
         working-directory: ./infrastructure
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Terraform ${{ env.TERRAFORM_VERSION }}
         uses: hashicorp/setup-terraform@v3
