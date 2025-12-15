@@ -27,7 +27,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1
 
   # Storage
-  shared_preferences: ^2.3.4
+  shared_preferences: ^2.5.4
 
   # Image picking
   image_picker: ^1.1.2
